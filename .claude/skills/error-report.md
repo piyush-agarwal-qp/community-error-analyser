@@ -203,7 +203,7 @@ ExceptionClass: message
 **dc / side:** us · portal
 **affected endpoints:** ...
 **affected hosts:** ...
-**error ids (all N):** comma-separated
+**error ids (sample):** 3 representative ids only — e.g. 49417, 58512, 113186 *(438 total)*
 
 ---
 
