@@ -18,6 +18,7 @@ Output: JSON to stdout, progress/errors to stderr (so they don't mix).
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -112,6 +113,11 @@ class MetabaseClient:
                      date_to: str = "") -> list[dict]:
         body: dict = {}
         if date_from or date_to:
+            # IMPORTANT: template-tag names ("date_from", "date_to") must match
+            # the variable names defined in the saved Metabase question exactly.
+            # If the question uses different names, dates are silently ignored
+            # and the query returns unfiltered or wrong-date data.
+            # Verify in Metabase: question → edit → variables panel.
             body["parameters"] = []
             if date_from:
                 body["parameters"].append({
@@ -170,8 +176,12 @@ def _condense(row: dict) -> dict:
 
     url = ""
     try:
-        snippet = info if info.strip().endswith("}") else info + "}"
-        url = json.loads(snippet).get("url", "")
+        # additional_info_json is truncated at EXTRA_INFO_CHARS — attempt a
+        # targeted regex extraction instead of trying to repair broken JSON,
+        # which fails silently whenever the cut lands mid-string.
+        m = re.search(r'"url"\s*:\s*"([^"]*)"', info)
+        if m:
+            url = m.group(1)
     except Exception:
         pass
 

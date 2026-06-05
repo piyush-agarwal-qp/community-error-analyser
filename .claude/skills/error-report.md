@@ -3,10 +3,18 @@ name: error-report
 description: >
   Generate weekly Communities error report from Metabase. Clusters errors,
   splits by DC and portal/panel side, outputs PDM + Engineering Update blocks.
-  Caveman style — no filler, no padding, dense output only.
+  Dense output only — no filler.
 ---
 
-Activate caveman mode for entire output. No summaries, no padding, no "here is the report". Just data.
+## Output style (embedded — no external skill needed)
+
+Respond terse. Drop: articles, filler (just/really/basically), pleasantries, hedging.
+Fragments OK. Arrows for causality (X → Y). Short synonyms. Abbreviate (DB/config/req).
+Technical terms, class names, error messages stay exact. Code blocks unchanged.
+All prose lowercase. No capitalisation except Java class/method names and acronyms (DC, US, EU, QA, AJS, PDM).
+Pattern: `[thing] [action] [reason]. [next step].`
+
+---
 
 ## Trigger
 
@@ -17,24 +25,26 @@ Activate caveman mode for entire output. No summaries, no padding, no "here is t
 
 ---
 
-## Step 1 — Fetch
+## Step 1 — Fetch and save (once — never fetch twice)
 
 ```bash
-python3 fetcher.py --days 7 2>/tmp/fetcher_stderr.log
-# or
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD 2>/tmp/fetcher_stderr.log
+python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD > /tmp/errors.json 2>/tmp/fetcher_stderr.log
 ```
 
-Stdout = JSON data. Stderr = progress (discard). If fails, check `/tmp/fetcher_stderr.log`.
+All subsequent steps read from `/tmp/errors.json`. If fetch fails, check `/tmp/fetcher_stderr.log`.
 
 ---
 
-## Step 2 — Pre-cluster analysis (run this first, always)
+## Step 2 — Pre-cluster analysis
+
+Run this on the saved file to understand shape before writing the report:
 
 ```bash
-python3 fetcher.py --from ... --to ... 2>/dev/null | python3 -c "
+python3 -c "
 import json, sys, collections, re
-data = json.load(sys.stdin)
+
+with open('/tmp/errors.json') as f:
+    data = json.load(f)
 rows = data['rows']
 
 def dc(host):
@@ -43,33 +53,43 @@ def dc(host):
     if h.startswith('qa') or 'qaapp' in h or 'qaweb' in h or h == 'qa11': return 'QA'
     return 'US'
 
-PORTAL = {'showPanelMemberDashBoard','showMemberSurveys','showRewardTab','showMemberAccount','framework2AdHocPortal'}
+PORTAL = {'showPanelMemberDashBoard','showMemberSurveys','showRewardTab',
+          'showMemberAccount','framework2AdHocPortal'}
 PANEL  = {'showPanelUserReport','showDiscussionModeration','searchSurveyCampaignBatch',
           'panelLanguageTranslationImport','inviteUsers','showPanelProjectHistory',
           'showPanelIdeasSetup','editLanguage','editFlashletSurvey','twitterSignIn','loadResponse'}
 
 def side(url, st):
+    # AJS handler URL is definitive
     if 'PortalDashBoardAJSHandler' in url or 'portal' in url.lower(): return 'portal'
+    # extract referrer from AJSServlet header block
     m = re.search(r'\"referer\":\"([^\"]+)\"', st)
     ref = m.group(1) if m else ''
     for p in PORTAL:
-        if p.lower() in ref.lower() or p.lower() in st.lower(): return 'portal'
+        if p.lower() in ref.lower(): return 'portal'
     for p in PANEL:
-        if p.lower() in ref.lower() or p.lower() in st.lower(): return 'panel'
-    if 'panel' in st.lower(): return 'panel'
-    return 'other'
+        if p.lower() in ref.lower(): return 'panel'
+    # stack trace keyword fallback — referrer preferred above; class names alone are unreliable
+    # (PanelMember/PanelDetail appear in both portal and panel paths)
+    for p in PORTAL:
+        if p.lower() in st.lower(): return 'portal'
+    for p in PANEL:
+        if p.lower() in st.lower(): return 'panel'
+    return 'other'  # do NOT fall back to 'panel' — 'panel' in st is too broad
 
-# Clusters
+# --- clusters ---
 by_hash = collections.defaultdict(list)
 for r in rows: by_hash[r['hash']].append(r)
 print('=== CLUSTERS ===')
 for h, rs in sorted(by_hash.items(), key=lambda x: -len(x[1])):
     urls = sorted(set(r['url'] for r in rs if r['url']))
     dcs  = sorted(set(dc(r['host']) for r in rs))
+    # split on both newline and <BR> — AJSServlet uses <BR><BR> not \n
+    first_line = re.split(r'<BR>|\n', rs[0]['st'])[0][:150]
     print(f'hash={h} count={len(rs)} dc={dcs} urls={urls[:2]}')
-    print(f'  {rs[0][\"st\"].split(chr(10))[0][:150]}')
+    print(f'  {first_line}')
 
-# DC breakdown
+# --- DC breakdown ---
 print()
 print('=== DC BREAKDOWN ===')
 for d in ['US','EU','QA']:
@@ -89,33 +109,35 @@ for d in ['US','EU','QA']:
 
 | Rule | Action |
 |------|--------|
-| Same hash, same URL → one cluster | Merge |
-| Same hash, **different URLs** → split | Separate cluster per URL (e.g. GetTaskDetails ≠ GetSurveyDetails even if hash matches) |
-| Same exception + same call site, multi-host → one cluster | Merge |
-| QA hosts only → severity=low, note QA-only | Keep separate |
-| InvocationTargetException → note getCause() needed, cause is truncated in Metabase log | Always flag |
+| Same hash, same URL → one cluster | merge |
+| Same hash, **different URLs** → split | separate cluster per URL — `GetTaskDetails` ≠ `GetSurveyDetails` even if hash matches |
+| Same exception + same call site, multi-host → one cluster | merge |
+| QA hosts only → severity = low, label QA-only | keep separate from prod |
+| `InvocationTargetException` → real cause is wrapped; Metabase log truncates it | always note: "check getCause() in Resin logs" |
 
 ---
 
 ## Step 4 — DC & Side classification
 
-**DC rules:**
+**DC:**
 | Host pattern | DC |
 |---|---|
 | `pveu*`, `onepoll*` | EU |
 | `qa*`, `*qaapp*`, `*qaweb*`, `qa11` | QA |
-| everything else | US |
+| everything else (qprun*, qpweb*, pvqpadminapp*, sarun*, adminapp*) | US |
 
-**Side rules (Communities-specific):**
+**Side (Communities-specific):**
 
-Portal = **member-facing** (what panel members see):
-- AJS handler: `PortalDashBoardAJSHandler-GetTaskDetails`, `PortalDashBoardAJSHandler-GetSurveyDetails`
-- Pages: `showPanelMemberDashBoard`, `showMemberSurveys`, `showRewardTab`, `showMemberAccount`, `framework2AdHocPortal`
+Portal = member-facing (what panel members see):
+- AJS URL contains `PortalDashBoardAJSHandler`
+- Referrer contains: `showPanelMemberDashBoard`, `showMemberSurveys`, `showRewardTab`, `showMemberAccount`, `framework2AdHocPortal`
 
-Panel = **admin-facing** (what panel managers see):
-- Pages: `showPanelUserReport`, `searchSurveyCampaignBatch`, `panelLanguageTranslationImport`, `showDiscussionModeration`, `showPanelProjectHistory`, `showPanelIdeasSetup`, `editLanguage`, `twitterSignIn`, `inviteUsers`, `loadResponse`
+Panel = admin-facing (what panel managers see):
+- Referrer contains: `showPanelUserReport`, `searchSurveyCampaignBatch`, `panelLanguageTranslationImport`, `showDiscussionModeration`, `showPanelProjectHistory`, `showPanelIdeasSetup`, `editLanguage`, `twitterSignIn`, `inviteUsers`
 
-Classify by: AJS URL first → referrer header → stack trace keywords → fallback `other`.
+**Classify by priority:** AJS URL → referrer → stack trace keywords → `other`
+
+Do NOT classify as `panel` just because `PanelMember` or `PanelDetail` appears in the stack — these classes are used in both portal and panel paths. Referrer is the reliable signal.
 
 ---
 
@@ -123,105 +145,103 @@ Classify by: AJS URL first → referrer header → stack trace keywords → fall
 
 | Level | Criteria |
 |-------|---------|
-| critical | Feature/service broken for all users across all prod nodes |
-| high | Feature broken for a region or significant user subset |
-| medium | Feature broken for specific customers / edge paths |
-| low | QA-only, deprecated integrations, single-user config, one-offs |
+| critical | broken for all users across all prod nodes in a DC |
+| high | broken for a region or significant user subset |
+| medium | broken for specific customers / edge paths |
+| low | QA-only, deprecated integrations, single-user config, count ≤ 2 |
 
 ---
 
-## Step 6 — Report format (output exactly this structure, caveman dense)
+## Step 6 — Report format
 
 ```markdown
-# Weekly Error Report — DD Mon to DD Mon YYYY
+# weekly error report — DD mon to DD mon YYYY
 
-**Date range:** YYYY-MM-DD → YYYY-MM-DD
-**Total errors:** N [add "(query limit hit)" if N=500]
-**Clusters:** N
+**date range:** YYYY-MM-DD → YYYY-MM-DD
+**total errors:** N [add "(query limit hit — real volume higher)" if N=500]
+**clusters:** N
 
 ---
 
-## Summary Table
+## summary table
 
-| # | Severity | Error Type | Count | DC | Side |
+| # | severity | error type | count | dc | side |
 |---|----------|-----------|-------|-----|------|
 ...
 
 ---
 
-## DC & Side Breakdown
+## dc & side breakdown
 
-| DC | Total | Patterns | Repetitive | One-offs | Portal | Panel | Other |
+| dc | total | patterns | repetitive | one-offs | portal | panel | other |
 |----|-------|---------|-----------|---------|--------|-------|-------|
-| US | ... |
-| EU | ... |
-| QA | ... |
+| us | ... |
+| eu | ... |
+| qa | ... |
 
-- **Repetitive** = errors belonging to a hash seen >1 time (known recurring bug)
-- **One-offs** = errors with hash seen exactly once (new/transient)
-- **Portal** = member-facing errors | **Panel** = admin-facing errors
+- **repetitive** = errors belonging to a hash seen >1 time (recurring bug)
+- **one-offs** = hash seen exactly once (new or transient)
+- **portal** = member-facing | **panel** = admin-facing
 
 ---
 
-## Cluster Details
+## cluster details
 
-### N. [Type] *([Severity], [count] errors)*
+### N. [type] *([severity], [count] errors)*
 
-**Root cause:** one sentence
+**root cause:** one sentence
 
-**Summary:** 2-3 sentences — component, user impact, fix direction
+**summary:** 2-3 sentences — component, user impact, fix direction
 
-**Stack trace:**
+**stack trace:**
 \`\`\`
 ExceptionClass: message
     at com.surveyconsole.Package.Class.method(Class.java:LINE)
-    [note if wrapped — getCause() needed]
+    [wrapped — check getCause() in Resin logs]
 \`\`\`
 
-**DC / Side:** US · portal
-**Affected endpoints:** ...
-**Affected hosts:** ...
-**Error IDs (all N):** comma-separated
+**dc / side:** us · portal
+**affected endpoints:** ...
+**affected hosts:** ...
+**error ids (all N):** comma-separated
 
 ---
 
-## Recommended Actions
+## recommended actions
 
-| Priority | Action |
+| priority | action |
 |----------|--------|
-| P0 | ... (cluster N) |
+| p0 | ... (cluster N) |
 
 ---
 
-## PDM Report
+## pdm report
 
 \`\`\`
-[Total] Errors Logged ([date range])
+[total] errors logged ([date range])
 
-US DC — [N] panel, [N] portal
-EU DC — [N] panel, [N] portal
-QA    — [N] panel, [N] portal  (non-production)
+us dc — [N] panel, [N] portal
+eu dc — [N] panel, [N] portal
+qa    — [N] panel, [N] portal  (non-production)
 \`\`\`
 
-> Counts = distinct error types (clusters), not total rows.
-> Portal = member-facing. Panel = admin-facing.
+counts = distinct error types (clusters), not total rows.
+portal = member-facing. panel = admin-facing.
 
 ---
 
-## Engineering Update
+## engineering update
 
 \`\`\`
-[Total] Errors | Panel-[N], Portal-[N] (US) | Portal-[N], Panel-[N] (EU)
+[total] errors | panel-[N], portal-[N] (us) | portal-[N], panel-[N] (eu)
 
 ~ [count] : [one line lowercase — what broke, where, user impact]
-
 ~ [count] : [one line lowercase]
-...
 \`\`\`
 
-Engineering bullets: significant clusters only (count > 1, production only). One line each.
-Format: `~ [count] : [component] — [exception type short] — [impact]`
-All text lowercase. No capitalisation except class/method names in stack traces.
+include only: production clusters, count ≥ 5, or severity critical/high regardless of count.
+format: `~ [count] : [component] — [exception short] — [impact]`
+all text lowercase.
 ```
 
 ---
@@ -232,21 +252,25 @@ All text lowercase. No capitalisation except class/method names in stack traces.
 error_report_YYYY-MM-DD.md   ← use --to date (or today for --days)
 ```
 
+Always save. Do not wait for user to ask.
+
 ---
 
 ## Step 8 — Update KNOWN_ISSUES.md
 
-- Resolved this week → mark Resolved + date
-- Still active → bump Last seen date + update count trend
-- New issue appearing 2nd consecutive week → add KI-NNN entry
+- still active → bump last seen date, update count trend line
+- resolved (not in this week's data) → mark resolved + date
+- new issue appearing 2nd consecutive week → add KI-NNN entry
 
 ---
 
 ## Common pitfalls
 
-- Same hash ≠ same bug when URL differs — split by endpoint
-- `InvocationTargetException` wraps real cause — Metabase truncates it, note getCause() in report
-- 500 rows = limit hit — note in header, real volume higher
-- QA hosts always Low severity, never Critical
-- `pveu*` = EU. Everything else without qa prefix = US.
-- Zoom/SMTP/Twitter failures → classify side as panel (admin integration), not portal
+- same hash ≠ same bug when URL differs — always split by endpoint
+- `InvocationTargetException` wraps real cause — Metabase truncates it; note getCause() needed
+- 500 rows = query limit hit — real volume higher, note in header
+- QA hosts = low severity, never critical
+- `pveu*` = EU; `sarun*`, `qprun*`, `qpweb*`, `pvqpadminapp*` = US
+- `PanelMember`/`PanelDetail` in stack trace does NOT mean panel-side — use referrer
+- Zoom/SMTP/Twitter = panel-side (admin integrations)
+- never fetch twice — save to `/tmp/errors.json` and reuse
