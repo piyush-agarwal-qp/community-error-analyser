@@ -249,10 +249,10 @@ all text lowercase.
 ## Step 7 — Save report
 
 ```
-error_report_YYYY-MM-DD.md   ← use --to date (or today for --days)
+reports/error_report_YYYY-MM-DD.md   ← use --to date (or today for --days)
 ```
 
-Always save. Do not wait for user to ask.
+Create `reports/` dir if it doesn't exist. Always save. Do not wait for user to ask.
 
 ---
 

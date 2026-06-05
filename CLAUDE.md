@@ -32,7 +32,7 @@ python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD > /tmp/errors.json 2>/tmp/f
 
 **If count = 500:** note "query limit hit" in report header — real volume is higher.
 
-**Save report as:** `error_report_YYYY-MM-DD.md` (always save, don't wait to be asked).
+**Save report as:** `reports/error_report_YYYY-MM-DD.md` (create `reports/` if missing, always save, don't wait to be asked).
 
 ## .env required
 
