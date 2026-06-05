@@ -79,6 +79,14 @@ claude will run the fetcher, cluster errors, and produce a dated markdown file:
 error_report_YYYY-MM-DD.md
 ```
 
+the report is saved to:
+
+```
+reports/error_report_YYYY-MM-DD.md
+```
+
+the `reports/` folder is created automatically if it doesn't exist. all weekly reports accumulate there.
+
 the report contains:
 - summary table (severity, type, count, dc, side)
 - dc & side breakdown (us/eu/qa × portal/panel)
