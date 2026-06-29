@@ -2,7 +2,7 @@
 name: weekly-report
 description: >
   Master skill — runs all Communities weekly report modules in parallel,
-  runs error analysis, then assembles the final weekly_report.md.
+  assembles the final weekly_report.md, and commits.
 ---
 
 ## Trigger phrases
@@ -29,43 +29,45 @@ Confirm dates before proceeding if ambiguous.
 python3 run_all.py --from {START} --to {END}
 ```
 
-This runs simultaneously:
-- `metabase_report.py` → `metrics_report.md`
-- `fetcher.py` + `error_report.py` → `errors_combined.json` + `error_report.md`
-- `radar_report.py` → `radar_report.md`
-- `performance_report.py` → `perf_report.md`
+This fires all 4 modules simultaneously:
+
+| Module | Script | Output |
+|---|---|---|
+| Survey/Login metrics | `metabase_report.py` | `metrics_report.md` |
+| 500 Errors (fetch + analyse) | `fetcher.py` + `error_report.py` | `error_report.md` |
+| Radar tickets | `radar_report.py` | `radar_report.md` |
+| Slow query performance | `performance_report.py` (14 queries parallel) | `perf_report.md` |
 
 After all modules complete, `run_all.py` calls `assemble_report.py` automatically
 → `reports/{START}_to_{END}/weekly_report.md`
 
-Output folder: `reports/{START}_to_{END}/`
+Expected runtime: **3–5 minutes** (bottleneck is performance, 14 parallel queries).
 
-If any module fails with auth error → re-copy `metabase.SESSION` cookie from browser → update `.env` as `METABASE_SESSION_TOKEN`.
+If any module fails with 401 / auth error → re-copy `metabase.SESSION` from browser
+→ F12 → Application → Cookies → paste as `METABASE_SESSION_TOKEN` in `.env`.
 
 ---
 
-## Step 3 — Review errors (optional)
+## Step 3 — Review error report (optional)
 
-`error_report.md` is now generated automatically with:
-- Cluster details (hash-based grouping, severity, DC, portal/panel side)
-- PDM block  
-- Engineering update block
+`error_report.md` is generated automatically with:
+- Root cause per cluster (deepest `Caused by:` in chain)
+- Codebase frames from the `Caused by:` block
+- Request context (referer, IP, country, params)
+- DC (US/EU/QA) + side (portal/panel/other) classification
+- PDM block + engineering update block
 
-If deeper RCA is needed on a specific cluster, follow `.claude/skills/error-report.md`
-pointing at `reports/{START}_to_{END}/errors_combined.json`.
+For deeper RCA on a specific cluster, follow `.claude/skills/error-report.md`.
 
-Update `KNOWN_ISSUES.md` with new recurring issues found.
+Update `KNOWN_ISSUES.md` with any new recurring issues found.
 
 ---
 
 ## Step 4 — Show final report
 
-Print the contents of `reports/{START}_to_{END}/weekly_report.md` to the user.
-(`run_all.py` already assembled it — no need to run `assemble_report.py` again.)
+Print contents of `reports/{START}_to_{END}/weekly_report.md`.
 
----
-
-Remind them to fill in the manual sections:
+Remind user to fill in manual sections:
 - **Enhancement / Bugs / UX / Performance / Test & Coverage** → paste from sprint board
 - **Iron test coverage** → paste from CI
 
@@ -88,17 +90,18 @@ git commit -m "weekly reports: {START} to {END}"
 
 ---
 
-## Output folder summary
+## Output folder structure
 
 ```
 reports/{START}_to_{END}/
-  metrics_report.csv      ← raw counts
-  metrics_report.md       ← formatted survey/login metrics
-  errors_combined.json    ← raw 500 error data (65 rows)
+  weekly_report.md        ← combined copy-paste block  ← SHARE THIS
   error_report.md         ← clustered analysis + PDM + engineering update
+  metrics_report.md       ← survey/login counts (formatted)
+  metrics_report.csv      ← survey/login counts (raw)
   radar_report.md         ← radar tickets with brief
   perf_report.md          ← slow query breakdown (admin + portal)
-  weekly_report.md        ← combined copy-paste block ← SHARE THIS
+  raw/
+    errors_combined.json  ← raw 500 error fetch data (processing only)
 ```
 
 ## Auth errors

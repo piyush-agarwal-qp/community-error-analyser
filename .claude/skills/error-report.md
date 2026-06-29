@@ -1,292 +1,110 @@
 ---
 name: error-report
 description: >
-  Generate weekly Communities error report from Metabase. Clusters errors,
-  splits by DC and portal/panel side, outputs PDM + Engineering Update blocks.
-  Dense output only — no filler.
+  Deep-dive skill for investigating a specific 500 error cluster beyond what
+  the automated error_report.md shows. Use this when you need to understand
+  a specific bug's root cause, check if it's recurring, or update KNOWN_ISSUES.md.
+  The standard automated report (run_all.py) handles generation — this skill
+  is for investigation only.
 ---
 
-## Output style (embedded — no external skill needed)
+## When to use this skill
 
-Respond terse. Drop: articles, filler (just/really/basically), pleasantries, hedging.
-Fragments OK. Arrows for causality (X → Y). Short synonyms. Abbreviate (DB/config/req).
-Technical terms, class names, error messages stay exact. Code blocks unchanged.
-All prose lowercase. No capitalisation except Java class/method names and acronyms (DC, US, EU, QA, AJS, PDM).
-Pattern: `[thing] [action] [reason]. [next step].`
+- User asks to investigate a specific error cluster (e.g. "look into cluster #2")
+- User asks "is this a known issue?"
+- User asks to update KNOWN_ISSUES.md after reviewing the report
+- Automated `error_report.md` shows `InvocationTargetException` or `Root Exception :` as root cause — real cause may be deeper in Resin logs or needs manual trace
 
----
-
-## Trigger
-
-- "generate this week's error report"
-- "analyse errors from [date] to [date]"
-- "run weekly error analysis"
-- "show production errors"
+**Do NOT use this skill to regenerate the report** — run `python3 run_all.py` instead.
 
 ---
 
-## Step 1 — Locate or fetch error data (never fetch twice)
+## Step 1 — Locate error data
 
-Check if `run_all.py` already fetched the data for this week:
-
-```bash
-ls reports/{START}_to_{END}/errors_combined.json 2>/dev/null && echo "exists" || echo "missing"
+Raw data is at:
+```
+reports/{START}_to_{END}/raw/errors_combined.json
 ```
 
-**If exists** — skip fetch. Read from `reports/{START}_to_{END}/errors_combined.json`.
-
-**If missing** — fetch now:
-
+Check it exists:
 ```bash
-mkdir -p reports/{START}_to_{END}
+ls reports/{START}_to_{END}/raw/errors_combined.json
+```
+
+If missing, fetch first:
+```bash
 python3 fetcher.py --from {START} --to {END} \
-  --output reports/{START}_to_{END}/errors_combined.json 2>/tmp/fetcher.log
+  --output reports/{START}_to_{END}/raw/errors_combined.json
 ```
-
-Check row count: `python3 -c "import json; d=json.load(open('reports/{START}_to_{END}/errors_combined.json')); print(d['count'], 'rows')`
-
-All subsequent steps read from `reports/{START}_to_{END}/errors_combined.json`.
-If fetch fails or returns 0, check `/tmp/fetcher.log` — likely an expired session.
 
 ---
 
-## Step 2 — Pre-cluster analysis
+## Step 2 — Inspect a specific cluster
 
-Run this on the saved file to understand shape before writing the report:
+Pull all rows for a given hash to see full stacktraces across multiple occurrences:
 
 ```bash
 python3 -c "
-import json, sys, collections, re
-
-with open('reports/{START}_to_{END}/errors_combined.json') as f:
-    data = json.load(f)
-rows = data['rows']
-
-def dc(host):
-    h = host.lower()
-    if 'pveu' in h or 'onepoll' in h: return 'EU'
-    if h.startswith('qa') or 'qaapp' in h or 'qaweb' in h or h == 'qa11': return 'QA'
-    return 'US'
-
-PORTAL = {'showPanelMemberDashBoard','showMemberSurveys','showRewardTab',
-          'showMemberAccount','framework2AdHocPortal'}
-PANEL  = {'showPanelUserReport','showDiscussionModeration','searchSurveyCampaignBatch',
-          'panelLanguageTranslationImport','inviteUsers','showPanelProjectHistory',
-          'showPanelIdeasSetup','editLanguage','editFlashletSurvey','twitterSignIn','loadResponse'}
-
-def side(url, st):
-    # AJS handler URL is definitive
-    if 'PortalDashBoardAJSHandler' in url or 'portal' in url.lower(): return 'portal'
-    # extract referrer from AJSServlet header block
-    m = re.search(r'\"referer\":\"([^\"]+)\"', st)
-    ref = m.group(1) if m else ''
-    for p in PORTAL:
-        if p.lower() in ref.lower(): return 'portal'
-    for p in PANEL:
-        if p.lower() in ref.lower(): return 'panel'
-    # stack trace keyword fallback — referrer preferred above; class names alone are unreliable
-    # (PanelMember/PanelDetail appear in both portal and panel paths)
-    for p in PORTAL:
-        if p.lower() in st.lower(): return 'portal'
-    for p in PANEL:
-        if p.lower() in st.lower(): return 'panel'
-    return 'other'  # do NOT fall back to 'panel' — 'panel' in st is too broad
-
-# --- clusters ---
-by_hash = collections.defaultdict(list)
-for r in rows: by_hash[r['hash']].append(r)
-print('=== CLUSTERS ===')
-for h, rs in sorted(by_hash.items(), key=lambda x: -len(x[1])):
-    urls = sorted(set(r['url'] for r in rs if r['url']))
-    dcs  = sorted(set(dc(r['host']) for r in rs))
-    # split on both newline and <BR> — AJSServlet uses <BR><BR> not \n
-    first_line = re.split(r'<BR>|\n', rs[0]['st'])[0][:150]
-    print(f'hash={h} count={len(rs)} dc={dcs} urls={urls[:2]}')
-    print(f'  {first_line}')
-
-# --- DC breakdown ---
-print()
-print('=== DC BREAKDOWN ===')
-for d in ['US','EU','QA']:
-    rs = [r for r in rows if dc(r['host']) == d]
-    if not rs: continue
-    hc = collections.Counter(r['hash'] for r in rs)
-    sides = collections.Counter(side(r['url'], r['st']) for r in rs)
-    rpt = sum(1 for r in rs if hc[r['hash']] > 1)
-    oof = sum(1 for r in rs if hc[r['hash']] == 1)
-    print(f'{d}: total={len(rs)} patterns={len(hc)} repetitive={rpt} one-off={oof} portal={sides[\"portal\"]} panel={sides[\"panel\"]} other={sides[\"other\"]}')
+import json
+data = json.loads(open('reports/{START}_to_{END}/raw/errors_combined.json').read())
+rows = [r for r in data['rows'] if str(r.get('hash')) == '{HASH}']
+print(f'{len(rows)} rows for hash {HASH}')
+for r in rows:
+    print(f\"  id={r['id']}  host={r['host']}  ts={r['ts']}\")
+    print(f\"  url={r.get('url','')}\")
+    print(f\"  st={r['st'][:1000]}\")
+    print()
 "
 ```
 
----
-
-## Step 3 — Clustering rules
-
-| Rule | Action |
-|------|--------|
-| Same hash, same URL → one cluster | merge |
-| Same hash, **different URLs** → split | separate cluster per URL — `GetTaskDetails` ≠ `GetSurveyDetails` even if hash matches |
-| Same exception + same call site, multi-host → one cluster | merge |
-| QA hosts only → severity = low, label QA-only | keep separate from prod |
-| `InvocationTargetException` → real cause is wrapped; Metabase log truncates it | always note: "check getCause() in Resin logs" |
+Look for:
+- Whether all occurrences have the same stacktrace or vary
+- Whether it's one customer or many (check org/panel IDs in params)
+- Whether it's time-clustered (one-day spike vs spread across the week)
 
 ---
 
-## Step 4 — DC & Side classification
+## Step 3 — Check if it's a known issue
+
+```bash
+grep -i "{KEYWORD}" KNOWN_ISSUES.md
+```
+
+If found → check last seen date and count trend.
+If not found and it appears 2+ consecutive weeks → add a new entry.
+
+---
+
+## Step 4 — Update KNOWN_ISSUES.md
+
+For each cluster reviewed:
+
+| State | Action |
+|---|---|
+| Active, seen before | Bump `last_seen` date, update count trend |
+| Resolved (not in this week's data) | Mark `resolved: YYYY-MM-DD` |
+| New, 2nd consecutive week | Add new `KI-NNN` entry |
+| New, first time | Note in error_report.md summary, don't add KI yet |
+
+---
+
+## Classification reference
 
 **DC:**
 | Host pattern | DC |
 |---|---|
 | `pveu*`, `onepoll*` | EU |
-| `qa*`, `*qaapp*`, `*qaweb*`, `qa11` | QA |
-| everything else (qprun*, qpweb*, pvqpadminapp*, sarun*, adminapp*) | US |
+| `qa*`, `qaapp*`, `qaweb*`, `qa11`, `saqa*` | QA |
+| everything else | US |
 
-**Side (Communities-specific):**
+**Side:**
+- Portal = member-facing (`/a/panel.do`, `showMemberSurveys`, `showRewardTab`, `memberRedeemReward`, etc.)
+- Panel = admin-facing (`showPanelUserReport`, `showDiscussionModeration`, `inviteUsers`, `showPanelManagement`, `showQPointInventory`, etc.)
+- Referrer (classic `Referrer [URL]` or JSON `"referer"`) is the most reliable signal
+- `PanelMember` / `PanelDetail` in the stack does NOT mean panel-side — both portal and panel paths use these classes
 
-Portal = member-facing (what panel members see):
-- AJS URL contains `PortalDashBoardAJSHandler`
-- Referrer contains: `showPanelMemberDashBoard`, `showMemberSurveys`, `showRewardTab`, `showMemberAccount`, `framework2AdHocPortal`
-
-Panel = admin-facing (what panel managers see):
-- Referrer contains: `showPanelUserReport`, `searchSurveyCampaignBatch`, `panelLanguageTranslationImport`, `showDiscussionModeration`, `showPanelProjectHistory`, `showPanelIdeasSetup`, `editLanguage`, `twitterSignIn`, `inviteUsers`
-
-**Classify by priority:** AJS URL → referrer → stack trace keywords → `other`
-
-Do NOT classify as `panel` just because `PanelMember` or `PanelDetail` appears in the stack — these classes are used in both portal and panel paths. Referrer is the reliable signal.
-
----
-
-## Step 5 — Severity scale
-
-| Level | Criteria |
-|-------|---------|
-| critical | broken for all users across all prod nodes in a DC |
-| high | broken for a region or significant user subset |
-| medium | broken for specific customers / edge paths |
-| low | QA-only, deprecated integrations, single-user config, count ≤ 2 |
-
----
-
-## Step 6 — Report format
-
-```markdown
-# weekly error report — DD mon to DD mon YYYY
-
-**date range:** YYYY-MM-DD → YYYY-MM-DD
-**total errors:** N [add "(query limit hit — real volume higher)" if N=500]
-**clusters:** N
-
----
-
-## summary table
-
-| # | severity | error type | count | dc | side |
-|---|----------|-----------|-------|-----|------|
-...
-
----
-
-## dc & side breakdown
-
-| dc | total | patterns | repetitive | one-offs | portal | panel | other |
-|----|-------|---------|-----------|---------|--------|-------|-------|
-| us | ... |
-| eu | ... |
-| qa | ... |
-
-- **repetitive** = errors belonging to a hash seen >1 time (recurring bug)
-- **one-offs** = hash seen exactly once (new or transient)
-- **portal** = member-facing | **panel** = admin-facing
-
----
-
-## cluster details
-
-### N. [type] *([severity], [count] errors)*
-
-**root cause:** one sentence
-
-**summary:** 2-3 sentences — component, user impact, fix direction
-
-**stack trace:**
-\`\`\`
-ExceptionClass: message
-    at com.surveyconsole.Package.Class.method(Class.java:LINE)
-    [wrapped — check getCause() in Resin logs]
-\`\`\`
-
-**dc / side:** us · portal
-**affected endpoints:** ...
-**affected hosts:** ...
-**error ids (sample):** 3 representative ids only — e.g. 49417, 58512, 113186 *(438 total)*
-
----
-
-## recommended actions
-
-| priority | action |
-|----------|--------|
-| p0 | ... (cluster N) |
-
----
-
-## pdm report
-
-\`\`\`
-[total] errors logged ([date range])
-
-us dc — [N] panel, [N] portal
-eu dc — [N] panel, [N] portal
-qa    — [N] panel, [N] portal  (non-production)
-\`\`\`
-
-counts = distinct error types (clusters), not total rows.
-portal = member-facing. panel = admin-facing.
-
----
-
-## engineering update
-
-\`\`\`
-[total] errors | panel-[N], portal-[N] (us) | portal-[N], panel-[N] (eu)
-
-~ [count] : [one line lowercase — what broke, where, user impact]
-~ [count] : [one line lowercase]
-\`\`\`
-
-include only: production clusters, count ≥ 5, or severity critical/high regardless of count.
-format: `~ [count] : [component] — [exception short] — [impact]`
-all text lowercase.
-```
-
----
-
-## Step 7 — Save report
-
-```
-reports/{START}_to_{END}/error_report.md
-```
-
-Create the folder if it doesn't exist. Always save. Do not wait for user to ask.
-Also move any old-style `reports/error_report_{END}.md` to the new path if it exists.
-
----
-
-## Step 8 — Update KNOWN_ISSUES.md
-
-- still active → bump last seen date, update count trend line
-- resolved (not in this week's data) → mark resolved + date
-- new issue appearing 2nd consecutive week → add KI-NNN entry
-
----
-
-## Common pitfalls
-
-- same hash ≠ same bug when URL differs — always split by endpoint
-- `InvocationTargetException` wraps real cause — Metabase truncates it; note getCause() needed
-- 500 rows = query limit hit — real volume higher, note in header
-- QA hosts = low severity, never critical
-- `pveu*` = EU; `sarun*`, `qprun*`, `qpweb*`, `pvqpadminapp*` = US
-- `PanelMember`/`PanelDetail` in stack trace does NOT mean panel-side — use referrer
-- Zoom/SMTP/Twitter = panel-side (admin integrations)
-- never fetch twice — save to `/tmp/errors.json` and reuse
+**Common pitfalls:**
+- `InvocationTargetException` wraps the real cause — check `Caused by:` chain
+- `Root Exception :` with no following line = stacktrace was truncated — check if STACKTRACE_CHARS in `fetcher.py` needs increasing
+- 65 rows = Metabase question row limit — real volume may be higher
+- QA-only clusters = low severity, non-production
