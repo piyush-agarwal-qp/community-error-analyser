@@ -13,23 +13,23 @@
 | 1 | high | Root Exception :
 org.apache.xmlrpc.XmlRpcException: Failed to create input strea | 15 | EU | other | 2026-06-22 |
 | 2 | high | com.bhaskaran.database.DatabaseError: You have an error in your SQL syntax; chec | 14 | EU+QA | portal | 2026-06-20 → 2026-06-24 |
-| 3 | medium | java.util.NoSuchElementException: No value present | 7 | QA+US | other | 2026-06-22 |
-| 4 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 6 | US | other | 2026-06-24 |
+| 3 | medium | java.util.NoSuchElementException: No value present | 7 | QA+US | panel | 2026-06-22 |
+| 4 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 6 | US | panel | 2026-06-24 |
 | 5 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 4 | EU | panel | 2026-06-24 |
 | 6 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.RunSurveySh | 4 | QA | other | 2026-06-23 |
-| 7 | low | Root Exception : | 2 | EU | other | 2026-06-22 |
+| 7 | low | Root Exception : | 2 | EU | panel | 2026-06-22 |
 | 8 | low | java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0 | 2 | US | other | 2026-06-22 |
 | 9 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-19 |
-| 10 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | QA | other | 2026-06-21 |
-| 11 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | US | other | 2026-06-22 |
-| 12 | low | java.lang.UnsupportedOperationException | 1 | EU | other | 2026-06-23 |
+| 10 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | QA | panel | 2026-06-21 |
+| 11 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | US | panel | 2026-06-22 |
+| 12 | low | java.lang.UnsupportedOperationException | 1 | EU | panel | 2026-06-23 |
 | 13 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
 | 14 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
 | 15 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
 | 16 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
 | 17 | low | java.net.SocketTimeoutException: Read timed out | 1 | US | other | 2026-06-24 |
 | 18 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user.User.hasSm | 1 | US | other | 2026-06-24 |
-| 19 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 1 | QA | other | 2026-06-24 |
+| 19 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 1 | QA | panel | 2026-06-24 |
 
 ---
 
@@ -37,9 +37,9 @@ org.apache.xmlrpc.XmlRpcException: Failed to create input strea | 15 | EU | othe
 
 | dc | portal | panel | other |
 |----|--------|-------|-------|
-| us | 0 | 0 | 6 |
-| eu | 1 | 1 | 8 |
-| qa | 1 | 0 | 4 |
+| us | 0 | 3 | 3 |
+| eu | 1 | 3 | 6 |
+| qa | 1 | 3 | 1 |
 
 ---
 
@@ -105,7 +105,7 @@ at com.surveyconsole.micropanel.Panel.lambda$hydrateMemberForRecruitmentCriteria
 
 ### 3. java.util.NoSuchElementException: No value present *(medium, 7 hits)*
 
-**dc / side:** qa + us · other
+**dc / side:** qa + us · panel
 **endpoint:** `/a/renameUserFile.do`
 **dates:** 2026-06-22
 **affected hosts:** pvqpadminapp1.questionpro.net, qaweb2
@@ -135,7 +135,7 @@ at com.bhaskaran.ui.ActionAdapter.perform(ActionAdapter.java:297)
 
 ### 4. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micro *(medium, 6 hits)*
 
-**dc / side:** us · other
+**dc / side:** us · panel
 **endpoint:** `/a/showQPointInventory.do`
 **dates:** 2026-06-24
 **affected hosts:** pvqpadminapp1.questionpro.net
@@ -223,7 +223,7 @@ at com.surveyconsole.application.logs.filter.MDCFilter.filter(MDCFilter.java:26)
 
 ### 7. Root Exception : *(low, 2 hits)*
 
-**dc / side:** eu · other
+**dc / side:** eu · panel
 **endpoint:** `/a/panelLanguageTranslationImport.do`
 **dates:** 2026-06-22
 **affected hosts:** pveuadminapp1.questionpro.net
@@ -308,7 +308,7 @@ at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 
 ### 10. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 hits)*
 
-**dc / side:** qa · other
+**dc / side:** qa · panel
 **endpoint:** `/a/inviteUsers.do`
 **dates:** 2026-06-21
 **affected hosts:** qa11
@@ -338,7 +338,7 @@ at com.surveyconsole.micropanel.PanelMemberImportHandler.createOrUpdatePanelMemb
 
 ### 11. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 hits)*
 
-**dc / side:** us · other
+**dc / side:** us · panel
 **endpoint:** `/a/editPanelMember.do`
 **dates:** 2026-06-22
 **affected hosts:** qpweb1.questionpro.net
@@ -368,7 +368,7 @@ at com.surveyconsole.micropanel.PanelMember.addQPointLog(PanelMember.java:4678)
 
 ### 12. java.lang.UnsupportedOperationException *(low, 1 hits)*
 
-**dc / side:** eu · other
+**dc / side:** eu · panel
 **endpoint:** `/a//stopBroadcastProcess.do`
 **dates:** 2026-06-23
 **affected hosts:** pveuqpweb3.questionpro.net
@@ -552,7 +552,7 @@ at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14
 
 ### 19. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micro *(low, 1 hits)*
 
-**dc / side:** qa · other
+**dc / side:** qa · panel
 **endpoint:** `/a/inviteUsers.do`
 **dates:** 2026-06-24
 **affected hosts:** saqaapp1.questionpro.net
@@ -585,9 +585,9 @@ at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.bulkInsertPanelMe
 ```
 65 errors logged (2026-06-19 → 2026-06-25)
 
-us dc — 0 panel, 0 portal
-eu dc — 1 panel, 1 portal
-qa    — 0 panel, 1 portal  (non-production)
+us dc — 3 panel, 0 portal
+eu dc — 3 panel, 1 portal
+qa    — 3 panel, 1 portal  (non-production)
 ```
 
 ---
@@ -595,7 +595,7 @@ qa    — 0 panel, 1 portal  (non-production)
 ## engineering update
 
 ```
-65 errors | panel-0, portal-0 (us) | panel-1, portal-1 (eu)
+65 errors | panel-3, portal-0 (us) | panel-3, portal-1 (eu)
 
 ~ 15  : [2026-06-22] root exception :
 org.apache.xmlrpc.xmlrpcexception: failed to create input stream: server returned h — unknown endpoint

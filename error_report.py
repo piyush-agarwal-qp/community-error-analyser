@@ -66,24 +66,42 @@ PANEL_URL_SIGNALS = {
     "/a/deletePanelMember", "/a/bulkDeleteMembers", "/a/searchMember",
     "/a/showMembers", "/a/showOrgUsersPanel",
     "stopBroadcastProcess", "editPanelMember",
+    # admin console management pages
+    "showPanelManagement", "showPanelDashboard", "showPanelSettings",
+    "showQPointInventory", "showQPointHistory", "showImageLibrary",
+    "renameUserFile", "deleteUserFile", "uploadUserFile",
+    "showPanelReports", "showPanelActivityLog", "showPanelEmailLog",
 }
+
+
+def _extract_referer(st: str) -> str:
+    """Extract referer from either JSON format or classic Referrer [...] format."""
+    # AJSServlet JSON headers
+    m = re.search(r'"referer"\s*:\s*"([^"]+)"', st or "")
+    if m:
+        return m.group(1)
+    # Classic format: Referrer [https://...]
+    m = re.search(r'Referrer \[([^\]]+)\]', st or "")
+    return m.group(1) if m else ""
 
 
 def classify_side(url: str, st: str) -> str:
     combined = (url or "") + " " + (st or "")
+    # Portal signals checked against everything (url + full stacktrace)
     for sig in PORTAL_URL_SIGNALS:
         if sig.lower() in combined.lower():
             return "portal"
-    m = re.search(r'"referer"\s*:\s*"([^"]+)"', st or "")
-    ref = m.group(1) if m else ""
+    # Panel signals also checked against full stacktrace (endpoint is in st body)
+    for sig in PANEL_URL_SIGNALS:
+        if sig.lower() in combined.lower():
+            return "panel"
+    # Referer-based check (catches cases where endpoint isn't in st body)
+    ref = _extract_referer(st or "")
     for sig in PORTAL_URL_SIGNALS:
         if sig.lower() in ref.lower():
             return "portal"
     for sig in PANEL_URL_SIGNALS:
         if sig.lower() in ref.lower():
-            return "panel"
-    for sig in PANEL_URL_SIGNALS:
-        if sig.lower() in url.lower():
             return "panel"
     return "other"
 
@@ -178,10 +196,9 @@ def extract_request_context(st: str) -> dict:
     """Pull structured request info: referer, origin, IP, params."""
     ctx = {}
 
-    # AJSServlet JSON headers block
-    m = re.search(r'"referer"\s*:\s*"([^"]+)"', st or "")
-    if m:
-        ctx["referer"] = m.group(1)
+    ref = _extract_referer(st or "")
+    if ref:
+        ctx["referer"] = ref
 
     m = re.search(r'"cf-connecting-ip"\s*:\s*"([^"]+)"', st or "")
     if m:
@@ -191,12 +208,7 @@ def extract_request_context(st: str) -> dict:
     if m:
         ctx["country"] = m.group(1)
 
-    # Classic format: Referrer [URL]
-    m = re.search(r'Referrer \[([^\]]+)\]', st or "")
-    if m and "referer" not in ctx:
-        ctx["referer"] = m.group(1)
-
-    # Classic format: params in second bracket [params]
+    # Classic format: params in second bracket [endpoint][params]
     m = re.match(r'\[[^\]]+\]\[([^\]]{0,300})\]', st or "")
     if m:
         ctx["params"] = m.group(1)
