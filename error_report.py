@@ -23,6 +23,9 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 
+SAMPLE_IDS = 5   # how many sample error IDs to show per cluster
+
+
 # ── DC classification ─────────────────────────────────────────────────────────
 
 def classify_dc(host: str) -> str:
@@ -71,7 +74,6 @@ def classify_side(url: str, st: str) -> str:
     for sig in PORTAL_URL_SIGNALS:
         if sig.lower() in combined.lower():
             return "portal"
-    # Extract referrer from stacktrace
     m = re.search(r'"referer"\s*:\s*"([^"]+)"', st or "")
     ref = m.group(1) if m else ""
     for sig in PORTAL_URL_SIGNALS:
@@ -86,31 +88,120 @@ def classify_side(url: str, st: str) -> str:
     return "other"
 
 
-# ── Error type extraction ─────────────────────────────────────────────────────
+# ── Error extraction ──────────────────────────────────────────────────────────
 
-def extract_error_type(st: str) -> str:
+def extract_root_cause(st: str) -> str:
+    """Follow Caused by: chain to get the deepest root cause exception."""
     if not st:
         return "unknown"
-    # JSP errors: real exception after <BR><BR>
-    search = st.split("<BR><BR>", 1)[1] if "<BR><BR>" in st else st
-    for line in re.split(r"<BR>|\n", search):
+
+    # Split on <BR><BR> to get past the request context header
+    exc_block = st.split("<BR><BR>", 1)[1] if "<BR><BR>" in st else st
+
+    # Normalise line endings
+    text = exc_block.replace("<BR>", "\n")
+
+    # Walk all lines — last "Caused by:" wins (deepest root cause)
+    root = None
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("at ") or line.startswith("..."):
             continue
         if line.startswith("Caused by:"):
-            line = line[len("Caused by:"):].strip()
-        return line[:200]
-    return st[:200]
+            root = line[len("Caused by:"):].strip()
+        elif root is None:
+            # First non-frame line is the top-level exception (fallback)
+            root = line
+
+    return (root or exc_block[:200])[:300]
 
 
 def extract_endpoint(url: str, st: str) -> str:
+    """Best-effort endpoint: direct URL > request bracket > AJSServlet referer path."""
     if url:
         return url
-    m = re.search(r"\[(/a/[a-zA-Z0-9/_.\-]+)", st or "")
+
+    # [/a/something.do] format at start of st
+    m = re.match(r"\[(/a/[^\]]+)\]", st or "")
+    if m:
+        # strip query params — keep just the path
+        return m.group(1).split("?")[0]
+
+    # AJSServlet: extract path from referer header
+    m = re.search(r'"referer"\s*:\s*"https?://[^/]+(/a/[^?"]+)', st or "")
     if m:
         return m.group(1)
-    m = re.search(r"(?:^|\s)(/a/[a-zA-Z0-9/_.\-]+)", st or "")
+
+    # fallback: any /a/ path in the string
+    m = re.search(r'(/a/[a-zA-Z0-9/_.\-]+\.do)', st or "")
     return m.group(1) if m else ""
+
+
+def extract_codebase_frames(st: str, max_frames: int = 6) -> list[str]:
+    """Pull com.surveyconsole / com.bhaskaran frames from the deepest Caused by: block."""
+    text = st.replace("<BR>", "\n")
+    lines = text.splitlines()
+
+    # Find the last "Caused by:" block — frames there are most actionable
+    last_caused_by = -1
+    for idx, line in enumerate(lines):
+        if line.strip().startswith("Caused by:"):
+            last_caused_by = idx
+
+    search_lines = lines[last_caused_by:] if last_caused_by >= 0 else lines
+
+    frames = []
+    for line in search_lines:
+        line = line.strip()
+        if line.startswith("at ") and (
+            "com.surveyconsole" in line or "com.bhaskaran" in line
+        ):
+            frames.append(line[3:])  # strip "at "
+            if len(frames) >= max_frames:
+                break
+
+    # Fallback: top-level frames if Caused by block had none
+    if not frames:
+        for line in lines:
+            line = line.strip()
+            if line.startswith("at ") and (
+                "com.surveyconsole" in line or "com.bhaskaran" in line
+            ):
+                frames.append(line[3:])
+                if len(frames) >= max_frames:
+                    break
+
+    return frames
+
+
+def extract_request_context(st: str) -> dict:
+    """Pull structured request info: referer, origin, IP, params."""
+    ctx = {}
+
+    # AJSServlet JSON headers block
+    m = re.search(r'"referer"\s*:\s*"([^"]+)"', st or "")
+    if m:
+        ctx["referer"] = m.group(1)
+
+    m = re.search(r'"cf-connecting-ip"\s*:\s*"([^"]+)"', st or "")
+    if m:
+        ctx["ip"] = m.group(1)
+
+    m = re.search(r'"cf-ipcountry"\s*:\s*"([^"]+)"', st or "")
+    if m:
+        ctx["country"] = m.group(1)
+
+    # Classic format: Referrer [URL]
+    m = re.search(r'Referrer \[([^\]]+)\]', st or "")
+    if m and "referer" not in ctx:
+        ctx["referer"] = m.group(1)
+
+    # Classic format: params in second bracket [params]
+    m = re.match(r'\[[^\]]+\]\[([^\]]{0,300})\]', st or "")
+    if m:
+        ctx["params"] = m.group(1)
+
+    return ctx
 
 
 # ── Severity ──────────────────────────────────────────────────────────────────
@@ -139,20 +230,34 @@ def cluster(rows: list[dict]) -> list[dict]:
         dcs   = {classify_dc(r["host"]) for r in rs}
         sides = {classify_side(r.get("url", ""), r.get("st", "")) for r in rs}
         side  = "portal" if "portal" in sides else "panel" if "panel" in sides else "other"
-        endpoint = extract_endpoint(rs[0].get("url", ""), rs[0].get("st", ""))
-        error_type = extract_error_type(rs[0].get("st", ""))
-        count = len(rs)
+
+        rep = rs[0]  # representative row for extraction
+        root_cause  = extract_root_cause(rep.get("st", ""))
+        endpoint    = extract_endpoint(rep.get("url", ""), rep.get("st", ""))
+        frames      = extract_codebase_frames(rep.get("st", ""))
+        req_ctx     = extract_request_context(rep.get("st", ""))
+        count       = len(rs)
+
+        # timestamps
+        timestamps = sorted(r["ts"] for r in rs if r.get("ts"))
+        first_seen = timestamps[0][:10] if timestamps else ""
+        last_seen  = timestamps[-1][:10] if timestamps else ""
+
         clusters.append({
             "hash":       h,
             "count":      count,
-            "error_type": error_type,
+            "root_cause": root_cause,
             "endpoint":   endpoint,
+            "frames":     frames,
+            "req_ctx":    req_ctx,
             "dcs":        sorted(dcs),
             "side":       side,
             "severity":   classify_severity(count, dcs, side),
             "hosts":      sorted({r["host"] for r in rs})[:6],
-            "ids":        [r["id"] for r in rs[:3]],
-            "st":         rs[0].get("st", ""),
+            "ids":        [r["id"] for r in rs[:SAMPLE_IDS]],
+            "first_seen": first_seen,
+            "last_seen":  last_seen,
+            "st":         rep.get("st", ""),
         })
 
     return sorted(clusters, key=lambda c: (
@@ -162,13 +267,9 @@ def cluster(rows: list[dict]) -> list[dict]:
 
 # ── Markdown rendering ────────────────────────────────────────────────────────
 
-SEVERITY_EMOJI = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "⚪"}
-
-
 def render_report(start: str, end: str, clusters: list[dict], total: int) -> str:
     all_dcs = ["US", "EU", "QA"]
 
-    # DC × side breakdown
     dc_summary: dict[str, dict] = {dc: {"portal": 0, "panel": 0, "other": 0} for dc in all_dcs}
     for c in clusters:
         for dc in c["dcs"]:
@@ -186,14 +287,15 @@ def render_report(start: str, end: str, clusters: list[dict], total: int) -> str
         "",
         "## summary table",
         "",
-        "| # | severity | error type | count | dc | side |",
-        "|---|----------|-----------|-------|-----|------|",
+        "| # | sev | root cause | count | dc | side | dates |",
+        "|---|-----|-----------|-------|-----|------|-------|",
     ]
 
     for i, c in enumerate(clusters, 1):
-        et = c["error_type"][:80].replace("|", "\\|")
+        rc = c["root_cause"][:80].replace("|", "\\|")
+        dates = c["first_seen"] if c["first_seen"] == c["last_seen"] else f"{c['first_seen']} → {c['last_seen']}"
         lines.append(
-            f"| {i} | {c['severity']} | {et} | {c['count']} | {'+'.join(c['dcs'])} | {c['side']} |"
+            f"| {i} | {c['severity']} | {rc} | {c['count']} | {'+'.join(c['dcs'])} | {c['side']} | {dates} |"
         )
 
     lines += [
@@ -214,50 +316,80 @@ def render_report(start: str, end: str, clusters: list[dict], total: int) -> str
     lines += ["", "---", "", "## cluster details", ""]
 
     for i, c in enumerate(clusters, 1):
-        et = c["error_type"][:120]
-        st_preview = c["st"][:600].strip() if c["st"] else "(no stacktrace)"
+        rc = c["root_cause"][:120]
+        dates = c["first_seen"] if c["first_seen"] == c["last_seen"] else f"{c['first_seen']} → {c['last_seen']}"
+
         lines += [
-            f"### {i}. {et[:60]} *({c['severity']}, {c['count']} errors)*",
+            f"### {i}. {rc[:70]} *({c['severity']}, {c['count']} hits)*",
             "",
             f"**dc / side:** {' + '.join(dc.lower() for dc in c['dcs'])} · {c['side']}",
-            f"**endpoint:** {c['endpoint'] or '(unknown)'}",
+            f"**endpoint:** `{c['endpoint'] or '(unknown)'}`",
+            f"**dates:** {dates}",
             f"**affected hosts:** {', '.join(c['hosts'])}",
-            f"**error ids (sample):** {', '.join(str(x) for x in c['ids'])} *({c['count']} total)*",
-            "",
-            "**stack trace:**",
-            "```",
-            st_preview,
-            "```",
-            "",
-            "---",
+            f"**error ids (sample {min(SAMPLE_IDS, c['count'])}/{c['count']}):** "
+            + ", ".join(str(x) for x in c["ids"]),
             "",
         ]
+
+        # Request context
+        ctx = c["req_ctx"]
+        if ctx:
+            ctx_parts = []
+            if ctx.get("referer"):
+                ctx_parts.append(f"referer: `{ctx['referer']}`")
+            if ctx.get("ip"):
+                ctx_parts.append(f"ip: `{ctx['ip']}`" + (f" ({ctx['country']})" if ctx.get("country") else ""))
+            if ctx.get("params"):
+                ctx_parts.append(f"params: `{ctx['params'][:200]}`")
+            if ctx_parts:
+                lines += ["**request context:**", ""] + [f"- {p}" for p in ctx_parts] + [""]
+
+        # Root cause (full)
+        lines += [
+            "**root cause:**",
+            "```",
+            c["root_cause"],
+            "```",
+            "",
+        ]
+
+        # Codebase frames
+        if c["frames"]:
+            lines += [
+                "**codebase frames:**",
+                "```",
+                *[f"at {f}" for f in c["frames"]],
+                "```",
+                "",
+            ]
+
+        lines += ["---", ""]
 
     # PDM block
     us = dc_summary["US"]
     eu = dc_summary["EU"]
     qa = dc_summary["QA"]
-    pdm = "\n".join([
+    pdm_lines = [
         f"{total} errors logged ({start} → {end})",
         "",
         f"us dc — {us['panel']} panel, {us['portal']} portal",
         f"eu dc — {eu['panel']} panel, {eu['portal']} portal",
-    ])
+    ]
     if qa["panel"] + qa["portal"] + qa["other"] > 0:
-        pdm += f"\nqa    — {qa['panel']} panel, {qa['portal']} portal  (non-production)"
+        pdm_lines.append(f"qa    — {qa['panel']} panel, {qa['portal']} portal  (non-production)")
 
     lines += [
         "## pdm report",
         "",
         "```",
-        pdm,
+        *pdm_lines,
         "```",
         "",
         "---",
         "",
     ]
 
-    # Engineering update
+    # Engineering update — production clusters above threshold
     prod_clusters = [c for c in clusters
                      if not (c["dcs"] == ["QA"])
                      and (c["count"] >= 5 or c["severity"] in ("critical", "high"))]
@@ -268,9 +400,10 @@ def render_report(start: str, end: str, clusters: list[dict], total: int) -> str
     )
     eng_bullets = []
     for c in prod_clusters:
-        et = c["error_type"].lower()[:80]
+        rc = c["root_cause"].lower()[:100]
         ep = c["endpoint"] or "unknown endpoint"
-        eng_bullets.append(f"~ {c['count']:<4}: {et} — {ep}")
+        dates = c["first_seen"] if c["first_seen"] == c["last_seen"] else f"{c['first_seen']}→{c['last_seen']}"
+        eng_bullets.append(f"~ {c['count']:<4}: [{dates}] {rc} — {ep}")
 
     lines += [
         "## engineering update",
@@ -322,7 +455,6 @@ def main(start_date: str = None, end_date: str = None,
     md_file.write_text(md)
     print(f"[errors] saved → {md_file}")
 
-    # DC counts for assembler
     all_dcs = ["US", "EU", "QA"]
     dc_summary: dict[str, dict] = {dc: {"portal": 0, "panel": 0, "other": 0} for dc in all_dcs}
     for c in clusters:

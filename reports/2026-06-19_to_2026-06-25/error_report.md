@@ -8,27 +8,28 @@
 
 ## summary table
 
-| # | severity | error type | count | dc | side |
-|---|----------|-----------|-------|-----|------|
-| 1 | high | Root Exception : | 15 | EU | other |
-| 2 | high | java.lang.reflect.InvocationTargetException | 14 | EU+QA | portal |
-| 3 | medium | java.util.NoSuchElementException: No value present | 7 | QA+US | other |
-| 4 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 6 | US | other |
-| 5 | medium | java.lang.reflect.InvocationTargetException | 4 | EU | panel |
-| 6 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.RunSurveySh | 4 | QA | other |
-| 7 | low | Root Exception : | 2 | EU | other |
-| 8 | low | java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0 | 2 | US | other |
-| 9 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other |
-| 10 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | QA | other |
-| 11 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | US | other |
-| 12 | low | java.lang.UnsupportedOperationException | 1 | EU | other |
-| 13 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other |
-| 14 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other |
-| 15 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other |
-| 16 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other |
-| 17 | low | java.net.SocketTimeoutException: Read timed out | 1 | US | other |
-| 18 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user.User.hasSm | 1 | US | other |
-| 19 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 1 | QA | other |
+| # | sev | root cause | count | dc | side | dates |
+|---|-----|-----------|-------|-----|------|-------|
+| 1 | high | Root Exception :
+org.apache.xmlrpc.XmlRpcException: Failed to create input strea | 15 | EU | other | 2026-06-22 |
+| 2 | high | com.bhaskaran.database.DatabaseError: You have an error in your SQL syntax; chec | 14 | EU+QA | portal | 2026-06-20 → 2026-06-24 |
+| 3 | medium | java.util.NoSuchElementException: No value present | 7 | QA+US | other | 2026-06-22 |
+| 4 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 6 | US | other | 2026-06-24 |
+| 5 | medium | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 4 | EU | panel | 2026-06-24 |
+| 6 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.RunSurveySh | 4 | QA | other | 2026-06-23 |
+| 7 | low | Root Exception : | 2 | EU | other | 2026-06-22 |
+| 8 | low | java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0 | 2 | US | other | 2026-06-22 |
+| 9 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-19 |
+| 10 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | QA | other | 2026-06-21 |
+| 11 | low | UserPreparedStatement[SpyPreparedStatement[null]] | 1 | US | other | 2026-06-22 |
+| 12 | low | java.lang.UnsupportedOperationException | 1 | EU | other | 2026-06-23 |
+| 13 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
+| 14 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
+| 15 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
+| 16 | low | You have an error in your SQL syntax; check the manual that corresponds to your  | 1 | EU | other | 2026-06-23 |
+| 17 | low | java.net.SocketTimeoutException: Read timed out | 1 | US | other | 2026-06-24 |
+| 18 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user.User.hasSm | 1 | US | other | 2026-06-24 |
+| 19 | low | java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.Pane | 1 | QA | other | 2026-06-24 |
 
 ---
 
@@ -44,293 +45,537 @@
 
 ## cluster details
 
-### 1. Root Exception : *(high, 15 errors)*
+### 1. Root Exception :
+org.apache.xmlrpc.XmlRpcException: Failed to create i *(high, 15 hits)*
 
 **dc / side:** eu · other
-**endpoint:** (unknown)
+**endpoint:** `(unknown)`
+**dates:** 2026-06-22
 **affected hosts:** pveuadminapp1.questionpro.net, pveuqprun4.questionpro.net, pveuqpweb1.questionpro.net, pveuqpweb2.questionpro.net, pveuqpweb3.questionpro.net, pveuqpweb4.questionpro.net
-**error ids (sample):** 519700, 519716, 519740 *(15 total)*
+**error ids (sample 5/15):** 519700, 519716, 519740, 519749, 519774
 
-**stack trace:**
+**root cause:**
 ```
-Error Logged Thread : com.surveyconsole.builder.ListSurveysAction<BR><BR>Root Exception :
+Root Exception :
 org.apache.xmlrpc.XmlRpcException: Failed to create input stream: Server returned HTTP response code: 502 for URL: http://eu-data.questionpro.net/a/xmlrpc
-	at org.apache.xmlrpc.client.XmlRpcSunHttpTransport.getInputStream(XmlRpcSunHttpTransport.java:65)
-	at org.apache.xmlrpc.client.XmlRpcStreamTransport.sendRequest(XmlRpcStreamTransport.java:141)
-	at org.apache.xmlrpc.client.XmlRpcHttpTransport.sendRequest(XmlRpcHttpTransport.java:94)
-	at org.apache.xmlrpc.client.XmlRpcSunHttpTransport.sendRequest(XmlRpcS
+	at org.apache.xmlrpc.client
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.batch.KickStartServices.getSurveyResponseCountByDataSource(KickStartServices.java:325)
+at com.surveyconsole.builder.ListSurveysAction$1.runLogged(ListSurveysAction.java:369)
+at com.bhaskaran.processor.ErrorLoggedThread.run(ErrorLoggedThread.java:66)
+at com.surveyconsole.batch.KickStartServices.getSurveyResponseCountByDataSource(KickStartServices.java:328)
+at com.surveyconsole.builder.ListSurveysAction$1.runLogged(ListSurveysAction.java:369)
+at com.bhaskaran.processor.ErrorLoggedThread.run(ErrorLoggedThread.java:66)
 ```
 
 ---
 
-### 2. java.lang.reflect.InvocationTargetException *(high, 14 errors)*
+### 2. com.bhaskaran.database.DatabaseError: You have an error in your SQL sy *(high, 14 hits)*
 
 **dc / side:** eu + qa · portal
-**endpoint:** (unknown)
+**endpoint:** `/a/panel.do`
+**dates:** 2026-06-20 → 2026-06-24
 **affected hosts:** pveuadminapp1.questionpro.net, pveuqprun1.questionpro.net, pveuqprun3.questionpro.net, pveuqprun4.questionpro.net, qaweb2
-**error ids (sample):** 511277, 519643, 521964 *(14 total)*
+**error ids (sample 5/14):** 511277, 519643, 521964, 521976, 533776
 
-**stack trace:**
+**request context:**
+
+- referer: `https://fivebargatefarming.questionpro.eu/a/panel.do?id=1602639204&tabIndex=`
+- ip: `185.114.123.240` (GB)
+
+**root cause:**
 ```
-AJSServlet : {"headers":{"referer":"https://fivebargatefarming.questionpro.eu/a/panel.do?id=1602639204&tabIndex=","cf-ipcountry":"GB","sec-fetch-site":"same-origin","origin":"https://fivebargatefarming.questionpro.eu","sec-ch-ua-mobile":"?0","cf-visitor":"{\"scheme\":\"https\"}","content-type":"application/json; charset=UTF-8","cf-connecting-ip":"185.114.123.240","Content-Length":"1462","X-Real-IP":"fivebargatefarming.questionpro.eu","sec-fetch-mode":"cors","cdn-loop":"cloudflare; loops=1","cf-<BR><BR>java.lang.reflect.InvocationTargetException
-	at java.base/jdk.internal.reflect.DirectMethodHa
+com.bhaskaran.database.DatabaseError: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  )' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:81)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
+at com.surveyconsole.micropanel.Panel.lambda$hydrateMemberForRecruitmentCriteria$10(Panel.java:11414)
 ```
 
 ---
 
-### 3. java.util.NoSuchElementException: No value present *(medium, 7 errors)*
+### 3. java.util.NoSuchElementException: No value present *(medium, 7 hits)*
 
 **dc / side:** qa + us · other
-**endpoint:** /a/renameUserFile.do
+**endpoint:** `/a/renameUserFile.do`
+**dates:** 2026-06-22
 **affected hosts:** pvqpadminapp1.questionpro.net, qaweb2
-**error ids (sample):** 521111, 521116, 521118 *(7 total)*
+**error ids (sample 5/7):** 521111, 521116, 521118, 521124, 521129
 
-**stack trace:**
+**request context:**
+
+- referer: `https://qa-priority.questionpro.com/a/showImageLibrary.do?lcfpn=false`
+- params: `ajax=true&engine=dojo&mode=update&userFileID=4204224&pageOffset=0&folderID=0&text=drtjkl&type=null`
+
+**root cause:**
 ```
-[/a/renameUserFile.do][ajax=true&engine=dojo&mode=update&userFileID=4204224&pageOffset=0&folderID=0&text=drtjkl&type=null][ Active Index = 5 Current Survey = ID = 13608952 Num Surveys : 1104 Email : payal.pandey@questionpro.com] Referrer [https://qa-priority.questionpro.com/a/showImageLibrary.do?lcfpn=false] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36] Remote Address [123.201.33.202] HTTP Method [POST] <BR><BR>java.util.NoSuchElementException: No value present
-	at java.base/java.util.Optional.get(Optional.java:143)
+java.util.NoSuchElementException: No value present
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.user.RenameUserFileAction.updateUserFileNameInCache(RenameUserFileAction.java:72)
+at com.surveyconsole.user.RenameUserFileAction.getActionForward(RenameUserFileAction.java:65)
+at com.surveyconsole.user.RenameUserFileAction.doPerform(RenameUserFileAction.java:36)
+at com.bhaskaran.ui.ActionAdapter.lambda$perform$0(ActionAdapter.java:298)
+at com.bhaskaran.performance.iron.PerformanceLogUtil.executeWithLoggingIfPossible(PerformanceLogUtil.java:34)
+at com.bhaskaran.ui.ActionAdapter.perform(ActionAdapter.java:297)
 ```
 
 ---
 
-### 4. java.lang.NullPointerException: Cannot invoke "com.surveycon *(medium, 6 errors)*
+### 4. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micro *(medium, 6 hits)*
 
 **dc / side:** us · other
-**endpoint:** /a/jsp/includes/error.jsp
+**endpoint:** `/a/showQPointInventory.do`
+**dates:** 2026-06-24
 **affected hosts:** pvqpadminapp1.questionpro.net
-**error ids (sample):** 564124, 564125, 564127 *(6 total)*
+**error ids (sample 5/6):** 564124, 564125, 564127, 564128, 564131
 
-**stack trace:**
+**request context:**
+
+- referer: `https://admin.questionpro.com/a/showQPointInventory.do?lcfpn=false`
+
+**root cause:**
 ```
-JSP Error: [/a/jsp/includes/error.jsp][ajax=true&engine=dojo][ Active Index = 0 Current Survey = ID = 13648022 Num Surveys : 1105 Email : payal.pandey@questionpro.com] Referrer [https://admin.questionpro.com/a/showQPointInventory.do?lcfpn=false] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36] Remote Address [103.249.243.80] HTTP Method [GET] <BR><BR>java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.PanelMember.getSelectedLanguage()" because "member" is null
-	at com.surveyconsole.micropanel.re
+java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.PanelMember.getSelectedLanguage()" because "member" is null
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.micropanel.reward.QPointReward.getHTML(QPointReward.java:762)
+at com.surveyconsole.micropanel.reward.QPointReward.getHTML(QPointReward.java:750)
+at com.surveyconsole.application.logs.filter.MDCFilter.filter(MDCFilter.java:26)
+at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14)
+at com.surveyconsole.intercom.IntercomAppFilter.filter(IntercomAppFilter.java:28)
+at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14)
 ```
 
 ---
 
-### 5. java.lang.reflect.InvocationTargetException *(medium, 4 errors)*
+### 5. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micro *(medium, 4 hits)*
 
 **dc / side:** eu · panel
-**endpoint:** survey-angular.panel.PanelDiscussionTopicAJSHandler-GetActiveTopics
+**endpoint:** `survey-angular.panel.PanelDiscussionTopicAJSHandler-GetActiveTopics`
+**dates:** 2026-06-24
 **affected hosts:** pveuqpweb2.questionpro.net
-**error ids (sample):** 564176, 564177, 564178 *(4 total)*
+**error ids (sample 4/4):** 564176, 564177, 564178, 564179
 
-**stack trace:**
+**request context:**
+
+- referer: `https://eu.questionpro.com/a/showDiscussionModeration.do`
+- ip: `94.135.161.38` (DE)
+
+**root cause:**
 ```
-AJSServlet : {"headers":{"referer":"https://eu.questionpro.com/a/showDiscussionModeration.do","cf-ipcountry":"DE","sec-fetch-site":"same-origin","origin":"https://eu.questionpro.com","sec-ch-ua-full-version-list":"\"Microsoft Edge\";v=\"149.0.4022.80\", \"Chromium\";v=\"149.0.7827.156\", \"Not)A;Brand\";v=\"24.0.0.0\"","sec-ch-ua-mobile":"?0","cf-visitor":"{\"scheme\":\"https\"}","content-type":"application/json; charset=UTF-8","cf-connecting-ip":"94.135.161.38","Content-Length":"33","X-Real-IP<BR><BR>java.lang.reflect.InvocationTargetException
-	at java.base/jdk.internal.reflect.DirectMethodHa
+java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.PanelMember.getDisplayName()" because the return value of "com.surveyconsole.micropanel.discussion.DiscussionTopic.getAuthorPanelMember(com.surveyconsole.micropanel.Panel)" is null
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.micropanel.discussion.topic.service.AddEditTopicsService.putMemberDetails(AddEditTopicsService.java:90)
+at com.surveyconsole.micropanel.discussion.topic.service.AddEditTopicsService.getUpdatedDiscussionObject(AddEditTopicsService.java:59)
+at com.surveyconsole.micropanel.discussion.topic.service.AddEditTopicsService.getDiscussionsJsonArray(AddEditTopicsService.java:50)
+at com.surveyconsole.micropanel.discussion.topic.service.AddEditTopicsService.getActiveDiscussionsList(AddEditTopicsService.java:170)
+at com.surveyconsole.angular.panel.PanelDiscussionTopicAJSHandler.apiGetActiveTopics(PanelDiscussionTopicAJSHandler.java:460)
 ```
 
 ---
 
-### 6. java.lang.NullPointerException: Cannot invoke "com.surveycon *(low, 4 errors)*
+### 6. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.R *(low, 4 hits)*
 
 **dc / side:** qa · other
-**endpoint:** /a/takeProfileSurvey.do
+**endpoint:** `/a/takeProfileSurvey.do`
+**dates:** 2026-06-23
 **affected hosts:** qaweb2
-**error ids (sample):** 544298, 544357, 544369 *(4 total)*
+**error ids (sample 4/4):** 544298, 544357, 544369, 544489
 
-**stack trace:**
+**request context:**
+
+- referer: `https://qa-priority.questionpro.com/a/TakeSurvey?tt=YiyJTkNkMQiMuk7Y1EUFpg%3D%3D&lcfpn=false`
+- params: `mode=continue&cf_466054_year=-1&segID=0&cf_466054_day=1&cf_466055=&cf_466054_month=1&submit=Continue`
+
+**root cause:**
 ```
-[/a/takeProfileSurvey.do][mode=continue&cf_466054_year=-1&segID=0&cf_466054_day=1&cf_466055=&cf_466054_month=1&submit=Continue][ Active Index = 0 Current Survey = ID = 13648022 Num Surveys : 1105 Email : payal.pandey@questionpro.com] Referrer [https://qa-priority.questionpro.com/a/TakeSurvey?tt=YiyJTkNkMQiMuk7Y1EUFpg%3D%3D&lcfpn=false] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0] Remote Address [123.20<BR><BR>java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.RunSurveyShell.getPanelM
+java.lang.NullPointerException: Cannot invoke "com.surveyconsole.run.RunSurveyShell.getPanelMember()" because "shell" is null
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.micropanel.RequiredProfileUpdateAction.performPanel(RequiredProfileUpdateAction.java:39)
+at com.surveyconsole.micropanel.portal.PanelAction.doPerform(PanelAction.java:116)
+at com.bhaskaran.ui.ActionAdapter.lambda$perform$0(ActionAdapter.java:298)
+at com.bhaskaran.performance.iron.PerformanceLogUtil.executeWithLoggingIfPossible(PerformanceLogUtil.java:34)
+at com.bhaskaran.ui.ActionAdapter.perform(ActionAdapter.java:297)
+at com.surveyconsole.application.logs.filter.MDCFilter.filter(MDCFilter.java:26)
 ```
 
 ---
 
-### 7. Root Exception : *(low, 2 errors)*
+### 7. Root Exception : *(low, 2 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/panelLanguageTranslationImport.do
+**endpoint:** `/a/panelLanguageTranslationImport.do`
+**dates:** 2026-06-22
 **affected hosts:** pveuadminapp1.questionpro.net
-**error ids (sample):** 523259, 523315 *(2 total)*
+**error ids (sample 2/2):** 523259, 523315
 
-**stack trace:**
+**request context:**
+
+- referer: `https://euadmin.questionpro.com/a/editLanguage.do?mode=importTranslation&lcfln=false`
+- params: `ajax=true&engine=dojo&mode=import`
+
+**root cause:**
 ```
-[/a/panelLanguageTranslationImport.do][ajax=true&engine=dojo&mode=import][ Active Index = 0 Current Survey = ID = 1603066038 Num Surveys : 318 Email : muzaffar.quraishi+eu@questionpro.com] Referrer [https://euadmin.questionpro.com/a/editLanguage.do?mode=importTranslation&lcfln=false] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36] Remote Address [123.201.33.202] HTTP Method [POST] <BR><BR>Root Exception :
-java.lang.ArrayIndexOutOfBoundsException: Index 164 out of bounds for length 164
-	at com.surveyconsole.micropanel.
+Root Exception :
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.micropanel.language.PanelTranslationProcessor.populateTranslationForSystemFieldsWhenCellValueNotEmpty(PanelTranslationProcessor.java:272)
+at com.surveyconsole.micropanel.language.PanelTranslationProcessor.addUpdateTranslationForSystemFields(PanelTranslationProcessor.java:258)
+at com.surveyconsole.micropanel.language.PanelTranslationProcessor.populateSheetOneValuesForEachLanguageVersion(PanelTranslationProcessor.java:180)
+at com.surveyconsole.micropanel.language.PanelTranslationProcessor.addUpdateTranslationForSystemFieldsForEachLanguage(PanelTranslationProcessor.java:139)
+at com.surveyconsole.micropanel.language.PanelTranslationProcessor.importTranslations(PanelTranslationProcessor.java:122)
+at com.surveyconsole.micropanel.language.PanelLanguageTranslationImportHandler.processUserFile(PanelLanguageTranslationImportHandler.java:98)
 ```
 
 ---
 
-### 8. java.lang.IndexOutOfBoundsException: Index 0 out of bounds f *(low, 2 errors)*
+### 8. java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length  *(low, 2 hits)*
 
 **dc / side:** us · other
-**endpoint:** /a/loadResponse.do
+**endpoint:** `/a/loadResponse.do`
+**dates:** 2026-06-22
 **affected hosts:** qpweb1.questionpro.net
-**error ids (sample):** 525151, 525158 *(2 total)*
+**error ids (sample 2/2):** 525151, 525158
 
-**stack trace:**
+**request context:**
+
+- referer: `https://www.questionpro.com/a/frame.do?mode=viewIndividual&surveyID=96MFJ1fhrO1LHktMsTJTtheAMmtUhQRU_NKHxHsqV0Y-&responseSetID=UQtludCvtTAmWwC1AZmuKnIpDCtNsYxZk6SFUpVXSpQ-`
+- params: `surveyID=13323446&responseSetID=148363643`
+
+**root cause:**
 ```
-[/a/loadResponse.do][surveyID=13323446&responseSetID=148363643][ Active Index = 158 Current Survey = ID = 13323446 Num Surveys : 279 Email : thomas.conrad@salesfactory.com] Referrer [https://www.questionpro.com/a/frame.do?mode=viewIndividual&surveyID=96MFJ1fhrO1LHktMsTJTtheAMmtUhQRU_NKHxHsqV0Y-&responseSetID=UQtludCvtTAmWwC1AZmuKnIpDCtNsYxZk6SFUpVXSpQ-] User-Agent [Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36] Remote Addre<BR><BR>java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
-	at java.base/jdk.int
+java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.html.TEXTLoader.loadInternal(TEXTLoader.java:44)
+at com.surveyconsole.html.Loader.load(Loader.java:36)
+at com.surveyconsole.analysis.ResponseLoader.loadData(ResponseLoader.java:832)
+at com.surveyconsole.analysis.ResponseLoader.loadSectionResponse(ResponseLoader.java:776)
+at com.surveyconsole.analysis.ResponseLoader.load(ResponseLoader.java:718)
+at com.surveyconsole.analysis.ResponseLoader.load(ResponseLoader.java:695)
 ```
 
 ---
 
-### 9. You have an error in your SQL syntax; check the manual that  *(low, 1 errors)*
+### 9. You have an error in your SQL syntax; check the manual that correspond *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/updatePanelMemberProfile.do
+**endpoint:** `/a/updatePanelMemberProfile.do`
+**dates:** 2026-06-19
 **affected hosts:** pveuqpweb1.questionpro.net
-**error ids (sample):** 494739 *(1 total)*
+**error ids (sample 1/1):** 494739
 
-**stack trace:**
+**root cause:**
 ```
-[/a/updatePanelMemberProfile.do][cf_25638_year=-1&pageOffset=0&cf_28584=569560&cf_25635=-1&id=8391011&cf_25639=525360&cf_25638_month=-1&cf_25617_month=1&ajax=true&cf_25638_hour=-1&cf_25638_min=-1&cf_27585=&cf_25617_day=31&engine=dojo&cf_27471=-1&cf_25610=An&cf_25611=Cade&cf_25612=7769976968&cf_25613=a.cade63@btinternet.com&cf_25614=&cf_25615=525054&cf_25616=525252&cf_25618=525261&cf_25617_year=1963&cf_25619=525267&cf_25620=525281&cf_25621=525288&cf_25622=344&cf_25623=525289&cf_25638_day=Day&cf_<BR><BR>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  )' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedConnectionCommand.executeWithConnection(PreparedConnectionCommand.java:75)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 ```
 
 ---
 
-### 10. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 errors)*
+### 10. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 hits)*
 
 **dc / side:** qa · other
-**endpoint:** /a/inviteUsers.do
+**endpoint:** `/a/inviteUsers.do`
+**dates:** 2026-06-21
 **affected hosts:** qa11
-**error ids (sample):** 515188 *(1 total)*
+**error ids (sample 1/1):** 515188
 
-**stack trace:**
+**request context:**
+
+- referer: `https://auqa.questionpro.com/a/showPanelUserReport.do?lcfpn=false`
+- params: `ajax=true&engine=dojo&text=selenium-communities+test+au@questionpro.com,TestTest123,7894561239,TestA,TestB,TestC,Selenium@123&info=-1`
+
+**root cause:**
 ```
-[/a/inviteUsers.do][ajax=true&engine=dojo&text=selenium-communities+test+au@questionpro.com,TestTest123,7894561239,TestA,TestB,TestC,Selenium@123&info=-1][ Active Index = -1 Current Survey = Null Num Surveys : 0 Email : selenium+au+cctest+communities+sanityparalleltest@questionpro.com] Referrer [https://auqa.questionpro.com/a/showPanelUserReport.do?lcfpn=false] User-Agent [Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.0.0 Safari/537.36] Remote Addre<BR><BR>UserPreparedStatement[SpyPreparedStatement[null]]
-Duplicate entry '4007366-selenium-communit
+UserPreparedStatement[SpyPreparedStatement[null]]
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedInsertCommand.executeWithConnection(PreparedInsertCommand.java:39)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedInsertCommand.execute(PreparedInsertCommand.java:123)
+at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.executeMultiplePanelMemberInsert(BulkInsertPanelMemberProcessor.java:161)
+at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.bulkInsertPanelMembers(BulkInsertPanelMemberProcessor.java:88)
+at com.surveyconsole.micropanel.PanelMemberImportHandler.createOrUpdatePanelMember(PanelMemberImportHandler.java:34)
 ```
 
 ---
 
-### 11. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 errors)*
+### 11. UserPreparedStatement[SpyPreparedStatement[null]] *(low, 1 hits)*
 
 **dc / side:** us · other
-**endpoint:** /a/editPanelMember.do
+**endpoint:** `/a/editPanelMember.do`
+**dates:** 2026-06-22
 **affected hosts:** qpweb1.questionpro.net
-**error ids (sample):** 525161 *(1 total)*
+**error ids (sample 1/1):** 525161
 
-**stack trace:**
+**request context:**
+
+- referer: `https://www.questionpro.com/a/showPanelUserReport.do?lcfpn=false`
+- params: `engine=dojo&moderator=0&mobileNumber=2037677354&pageOrigin=&username=Metmadison&ID=83390501&custom1=&custom2=&custom3=&countryCode=+1&lastname=Madison&middlename=&userAction=save&ajax=true&custom4=&cu`
+
+**root cause:**
 ```
-[/a/editPanelMember.do][engine=dojo&moderator=0&mobileNumber=2037677354&pageOrigin=&username=Metmadison&ID=83390501&custom1=&custom2=&custom3=&countryCode=+1&lastname=Madison&middlename=&userAction=save&ajax=true&custom4=&custom5=&status=2&emailAddress=metmadison752@outlook.com&defaultLanguage=0&firstname=Met][ Active Index = 126 Current Survey = ID = 13431280 Num Surveys : 279 Email : thomas.conrad@salesfactory.com] Referrer [https://www.questionpro.com/a/showPanelUserReport.do?lcfpn=false] Us<BR><BR>UserPreparedStatement[SpyPreparedStatement[null]]
-Duplicate entry '149770-80439514-80439514-
+UserPreparedStatement[SpyPreparedStatement[null]]
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedInsertCommand.executeWithConnection(PreparedInsertCommand.java:39)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedInsertCommand.execute(PreparedInsertCommand.java:123)
+at com.surveyconsole.micropanel.reward.QPointLogHelper.insertData(QPointLogHelper.java:483)
+at com.surveyconsole.micropanel.reward.QPointLog.insert(QPointLog.java:43)
+at com.surveyconsole.micropanel.PanelMember.addQPointLog(PanelMember.java:4678)
 ```
 
 ---
 
-### 12. java.lang.UnsupportedOperationException *(low, 1 errors)*
+### 12. java.lang.UnsupportedOperationException *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a//stopBroadcastProcess.do
+**endpoint:** `/a//stopBroadcastProcess.do`
+**dates:** 2026-06-23
 **affected hosts:** pveuqpweb3.questionpro.net
-**error ids (sample):** 543290 *(1 total)*
+**error ids (sample 1/1):** 543290
 
-**stack trace:**
+**request context:**
+
+- referer: `https://eu.questionpro.com/a/showPanelBroadcastEmail.do?lcfpn=false`
+- params: `ajax=true&engine=dojo&id=1604333467`
+
+**root cause:**
 ```
-[/a//stopBroadcastProcess.do][ajax=true&engine=dojo&id=1604333467][ Active Index = 2 Current Survey = ID = 1603036405 Num Surveys : 31 Email : llrccgs.beinvolved@nhs.net] Referrer [https://eu.questionpro.com/a/showPanelBroadcastEmail.do?lcfpn=false] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36] Remote Address [145.40.133.35] HTTP Method [GET] <BR><BR>java.lang.UnsupportedOperationException
-	at java.base/java.lang.Thread.stop(Thread.java:1667)
-	at com.surveyconsole.batch.LongProcessHandler.stopProcess(LongProcessHand
+java.lang.UnsupportedOperationException
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.batch.LongProcessHandler.stopProcess(LongProcessHandler.java:44)
+at com.surveyconsole.micropanel.broadcast.StopBroadcastProcessAction.doPerform(StopBroadcastProcessAction.java:32)
+at com.bhaskaran.ui.ActionAdapter.lambda$perform$0(ActionAdapter.java:298)
+at com.bhaskaran.performance.iron.PerformanceLogUtil.executeWithLoggingIfPossible(PerformanceLogUtil.java:34)
+at com.bhaskaran.ui.ActionAdapter.perform(ActionAdapter.java:297)
+at com.surveyconsole.application.logs.filter.MDCFilter.filter(MDCFilter.java:26)
 ```
 
 ---
 
-### 13. You have an error in your SQL syntax; check the manual that  *(low, 1 errors)*
+### 13. You have an error in your SQL syntax; check the manual that correspond *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/updatePanelMemberProfile.do
+**endpoint:** `/a/updatePanelMemberProfile.do`
+**dates:** 2026-06-23
 **affected hosts:** pveuqpweb4.questionpro.net
-**error ids (sample):** 544300 *(1 total)*
+**error ids (sample 1/1):** 544300
 
-**stack trace:**
+**root cause:**
 ```
-[/a/updatePanelMemberProfile.do][cf_25638_year=-1&pageOffset=0&cf_28584=569561&cf_25635=525349&id=23176188&cf_25639=-1&cf_25638_month=-1&cf_25617_month=9&ajax=true&cf_25638_hour=-1&cf_25638_min=-1&cf_27585=&cf_25617_day=29&engine=dojo&cf_27471=-1&cf_25610=Mark&cf_25611=Palmer&cf_25612=&cf_25613=&cf_25614=&cf_25615=525054&cf_25616=525260&cf_25618=525261&cf_25617_year=1963&cf_25619=-1&cf_25620=525282&cf_25621=-1&cf_25622=&cf_25623=-1&cf_25638_day=Day&cf_25625=-1&cf_25626=-1&cf_25627=-1&cf_25624=-<BR><BR>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  )' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedConnectionCommand.executeWithConnection(PreparedConnectionCommand.java:75)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 ```
 
 ---
 
-### 14. You have an error in your SQL syntax; check the manual that  *(low, 1 errors)*
+### 14. You have an error in your SQL syntax; check the manual that correspond *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/updatePanelMemberProfile.do
+**endpoint:** `/a/updatePanelMemberProfile.do`
+**dates:** 2026-06-23
 **affected hosts:** pveuqpweb4.questionpro.net
-**error ids (sample):** 544303 *(1 total)*
+**error ids (sample 1/1):** 544303
 
-**stack trace:**
+**root cause:**
 ```
-[/a/updatePanelMemberProfile.do][cf_25638_year=-1&pageOffset=0&cf_28584=569561&cf_25635=525349&id=23176188&cf_25639=-1&cf_25638_month=-1&cf_25617_month=9&ajax=true&cf_25638_hour=-1&cf_25638_min=-1&cf_27585=&cf_25617_day=29&engine=dojo&cf_27471=-1&cf_25610=Mark&cf_25611=Palmer&cf_25612=&cf_25613=mark@systems4food.co.uk&cf_25614=&cf_25615=525054&cf_25616=525260&cf_25618=525261&cf_25617_year=1963&cf_25619=-1&cf_25620=525282&cf_25621=-1&cf_25622=&cf_25623=-1&cf_25638_day=Day&cf_25625=-1&cf_25626=-1<BR><BR>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  and (cr1.user_id = 1602711301 and cr1.panel_id = 1602639204 and pm.id = cr' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedConnectionCommand.executeWithConnection(PreparedConnectionCommand.java:75)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 ```
 
 ---
 
-### 15. You have an error in your SQL syntax; check the manual that  *(low, 1 errors)*
+### 15. You have an error in your SQL syntax; check the manual that correspond *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/updatePanelMemberProfile.do
+**endpoint:** `/a/updatePanelMemberProfile.do`
+**dates:** 2026-06-23
 **affected hosts:** pveuqpweb4.questionpro.net
-**error ids (sample):** 550694 *(1 total)*
+**error ids (sample 1/1):** 550694
 
-**stack trace:**
+**root cause:**
 ```
-[/a/updatePanelMemberProfile.do][cf_25638_year=2024&pageOffset=0&cf_28584=569557&cf_25635=-1&id=8396342&cf_25639=525359&cf_25638_month=9&cf_25617_month=6&ajax=true&cf_25638_hour=14&cf_25638_min=37&cf_27585=&cf_25617_day=18&engine=dojo&cf_27471=-1&cf_25610=claire&cf_25611=matthews&cf_25612=7778703010&cf_25613=claire@timmatthews.co.uk&cf_25614=&cf_25615=525054&cf_25616=525252&cf_25618=525262&cf_25617_year=1966&cf_25619=525267&cf_25620=525281&cf_25621=525287&cf_25622=45&cf_25623=525291&cf_25638_da<BR><BR>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  )' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedConnectionCommand.executeWithConnection(PreparedConnectionCommand.java:75)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 ```
 
 ---
 
-### 16. You have an error in your SQL syntax; check the manual that  *(low, 1 errors)*
+### 16. You have an error in your SQL syntax; check the manual that correspond *(low, 1 hits)*
 
 **dc / side:** eu · other
-**endpoint:** /a/updatePanelMemberProfile.do
+**endpoint:** `/a/updatePanelMemberProfile.do`
+**dates:** 2026-06-23
 **affected hosts:** pveuqpweb4.questionpro.net
-**error ids (sample):** 550704 *(1 total)*
+**error ids (sample 1/1):** 550704
 
-**stack trace:**
+**root cause:**
 ```
-[/a/updatePanelMemberProfile.do][cf_25638_year=2024&pageOffset=0&cf_28584=569557&cf_25635=-1&id=8396342&cf_25639=525359&cf_25638_month=9&cf_25617_month=6&ajax=true&cf_25638_hour=14&cf_25638_min=37&cf_27585=&cf_25617_day=18&engine=dojo&cf_27471=-1&cf_25610=claire&cf_25611=matthews&cf_25612=7778703010&cf_25613=claire@timmatthews.co.uk&cf_25614=&cf_25615=525054&cf_25616=525252&cf_25618=525262&cf_25617_year=1966&cf_25619=525267&cf_25620=525281&cf_25621=525287&cf_25622=45&cf_25623=525291&cf_25638_da<BR><BR>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')  )  )' at line 1
+```
+
+**codebase frames:**
+```
+at com.bhaskaran.database.PreparedConnectionCommand.executeWithConnection(PreparedConnectionCommand.java:75)
+at com.bhaskaran.database.ConnectionCommand.execute(ConnectionCommand.java:66)
+at com.bhaskaran.database.PreparedConnectionCommand.execute(PreparedConnectionCommand.java:117)
+at com.bhaskaran.database.CountCommand.executeLong(CountCommand.java:31)
+at com.surveyconsole.micropanel.Panel.getPanelMemberCount(Panel.java:4891)
+at com.surveyconsole.micropanel.Panel.hydratePanelMember(Panel.java:11543)
 ```
 
 ---
 
-### 17. java.net.SocketTimeoutException: Read timed out *(low, 1 errors)*
+### 17. java.net.SocketTimeoutException: Read timed out *(low, 1 hits)*
 
 **dc / side:** us · other
-**endpoint:** (unknown)
+**endpoint:** `(unknown)`
+**dates:** 2026-06-24
 **affected hosts:** qpweb2.questionpro.net
-**error ids (sample):** 569482 *(1 total)*
+**error ids (sample 1/1):** 569482
 
-**stack trace:**
+**root cause:**
 ```
-Error In Processing Item While_Notifying Progress<BR><BR>java.net.SocketTimeoutException: Read timed out
-	at java.base/sun.nio.ch.NioSocketImpl.timedRead(NioSocketImpl.java:278)
-	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:304)
-	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:346)
-	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:796)
-	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:1099)
-	at java.base/sun.security.ssl.SSLSocketInputRecord.read(SSLSocketInputRecord.java:489)
-	at java.base/sun.security.ssl.SSLSocketInputRecord.r
+java.net.SocketTimeoutException: Read timed out
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.httputil.ApacheHttpUtility.sendPost(ApacheHttpUtility.java:78)
+at com.surveyconsole.batch.ProcessingItemNotifier.notifyProgress(ProcessingItemNotifier.java:44)
+at com.surveyconsole.batch.ProcessingItem.notifyProgress(ProcessingItem.java:586)
+at com.surveyconsole.batch.ProcessingItem.updateProgress(ProcessingItem.java:597)
+at com.surveyconsole.batch.ProcessingItem.updateProgress(ProcessingItem.java:605)
+at com.surveyconsole.campaign.PanelSendSurveyInvitationProcessor.sendInvitationToMembers(PanelSendSurveyInvitationProcessor.java:167)
 ```
 
 ---
 
-### 18. java.lang.NullPointerException: Cannot invoke "com.surveycon *(low, 1 errors)*
+### 18. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user. *(low, 1 hits)*
 
 **dc / side:** us · other
-**endpoint:** /a/jsp/includes/error.jsp
+**endpoint:** `(unknown)`
+**dates:** 2026-06-24
 **affected hosts:** qpweb3.questionpro.net
-**error ids (sample):** 570128 *(1 total)*
+**error ids (sample 1/1):** 570128
 
-**stack trace:**
+**request context:**
+
+- referer: `null`
+
+**root cause:**
 ```
-JSP Error: [/a/jsp/includes/error.jsp][ajax=true&engine=dojo] No User Object in Session Referrer [null] User-Agent [Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.35/36 Safari/537.36] Remote Address [152.163.120.210] HTTP Method [GET] <BR><BR>java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user.User.hasSmtpSettings()" because "<local40>" is null
-	at _jsp._jsp._survey._sendsurvey._compose._email._fromEmailDropDown__jsp._jspService(_fromEmailDropDown__jsp.java:1748)
-	at _jsp._jsp._survey._sendsurvey._compose._email._fromEmailDr
+java.lang.NullPointerException: Cannot invoke "com.surveyconsole.user.User.hasSmtpSettings()" because "<local40>" is null
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.application.logs.filter.MDCFilter.filter(MDCFilter.java:26)
+at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14)
+at com.surveyconsole.intercom.IntercomAppFilter.filter(IntercomAppFilter.java:28)
+at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14)
+at com.surveyconsole.infra.XSSPreventionFilter.filter(XSSPreventionFilter.java:131)
+at com.bhaskaran.application.filter.FilterAdapter.doFilter(FilterAdapter.java:14)
 ```
 
 ---
 
-### 19. java.lang.NullPointerException: Cannot invoke "com.surveycon *(low, 1 errors)*
+### 19. java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micro *(low, 1 hits)*
 
 **dc / side:** qa · other
-**endpoint:** /a/inviteUsers.do
+**endpoint:** `/a/inviteUsers.do`
+**dates:** 2026-06-24
 **affected hosts:** saqaapp1.questionpro.net
-**error ids (sample):** 570964 *(1 total)*
+**error ids (sample 1/1):** 570964
 
-**stack trace:**
+**request context:**
+
+- referer: `https://qa.surveyanalytics.com/a/showPanelUserReport.do?lcfpn=false`
+- params: `ajax=true&engine=dojo&text=selenium-communities+test+sa@questionpro.com,TestTest123,7894561239,TestA,TestB,TestC,Selenium@123&info=-1`
+
+**root cause:**
 ```
-[/a/inviteUsers.do][ajax=true&engine=dojo&text=selenium-communities+test+sa@questionpro.com,TestTest123,7894561239,TestA,TestB,TestC,Selenium@123&info=-1][ Active Index = 0 Current Survey = ID = 3334149 Num Surveys : 2 Email : selenium+sa+cctest+communities+samplingtest@questionpro.com] Referrer [https://qa.surveyanalytics.com/a/showPanelUserReport.do?lcfpn=false] User-Agent [Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.0.0 Safari/537.36] Remote Ad<BR><BR>java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.PanelMemberFieldV
+java.lang.NullPointerException: Cannot invoke "com.surveyconsole.micropanel.PanelMemberFieldValues.hasCustomVariables()" because "fieldValues" is null
+```
+
+**codebase frames:**
+```
+at com.surveyconsole.micropanel.processor.impl.BulkProfileInsertProcessor.prepareInsert(BulkProfileInsertProcessor.java:107)
+at com.surveyconsole.micropanel.processor.impl.BulkProfileInsertProcessor.initInsert(BulkProfileInsertProcessor.java:98)
+at com.surveyconsole.micropanel.processor.impl.BulkProfileInsertProcessor.<init>(BulkProfileInsertProcessor.java:49)
+at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.bulkProfileInsertProcessingForMembers(BulkInsertPanelMemberProcessor.java:195)
+at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.postInsertProcessing(BulkInsertPanelMemberProcessor.java:174)
+at com.surveyconsole.micropanel.BulkInsertPanelMemberProcessor.bulkInsertPanelMembers(BulkInsertPanelMemberProcessor.java:90)
 ```
 
 ---
@@ -352,8 +597,9 @@ qa    — 0 panel, 1 portal  (non-production)
 ```
 65 errors | panel-0, portal-0 (us) | panel-1, portal-1 (eu)
 
-~ 15  : root exception : — unknown endpoint
-~ 14  : java.lang.reflect.invocationtargetexception — unknown endpoint
-~ 7   : java.util.nosuchelementexception: no value present — /a/renameUserFile.do
-~ 6   : java.lang.nullpointerexception: cannot invoke "com.surveyconsole.micropanel.pane — /a/jsp/includes/error.jsp
+~ 15  : [2026-06-22] root exception :
+org.apache.xmlrpc.xmlrpcexception: failed to create input stream: server returned h — unknown endpoint
+~ 14  : [2026-06-20→2026-06-24] com.bhaskaran.database.databaseerror: you have an error in your sql syntax; check the manual that co — /a/panel.do
+~ 7   : [2026-06-22] java.util.nosuchelementexception: no value present — /a/renameUserFile.do
+~ 6   : [2026-06-24] java.lang.nullpointerexception: cannot invoke "com.surveyconsole.micropanel.panelmember.getselectedl — /a/showQPointInventory.do
 ```

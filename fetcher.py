@@ -29,8 +29,8 @@ load_dotenv()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-STACKTRACE_CHARS = 2000
-EXTRA_INFO_CHARS = 400
+STACKTRACE_CHARS = 8000
+EXTRA_INFO_CHARS = 2000
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
