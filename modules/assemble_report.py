@@ -12,10 +12,16 @@ Usage:
 
 import argparse
 import re
-from datetime import date, timedelta
+import sys
+from datetime import date
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).parent
+# Allow running as `python3 modules/assemble_report.py` directly
+_pkg_root = str(Path(__file__).parent.parent)
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
+
+from lib.utils import ROOT, get_week_range
 
 
 # ── Parsers ───────────────────────────────────────────────────────────────────
@@ -213,13 +219,9 @@ def assemble(start: str, end: str, folder: Path) -> str:
 
 def main(start: str = None, end: str = None) -> Path:
     if not start or not end:
-        today = date.today()
-        days_back = (today.weekday() - 3) % 7 or 7
-        last_thursday = today - timedelta(days=days_back)
-        last_friday = last_thursday - timedelta(days=6)
-        start, end = str(last_friday), str(last_thursday)
+        start, end = get_week_range()
 
-    folder = SCRIPT_DIR / "reports" / f"{start}_to_{end}"
+    folder = ROOT / "reports" / f"{start}_to_{end}"
     if not folder.exists():
         print(f"ERROR: {folder} does not exist — run run_all.py first")
         return None

@@ -11,6 +11,27 @@ Runs all report modules in parallel and assembles a combined copy-paste block.
 
 ## On trigger: follow `.claude/skills/weekly-report.md` exactly
 
+## Project structure
+
+```
+run_all.py              ← entry point: orchestrates all modules in parallel
+modules/                ← individual report generators
+  fetcher.py            ← Metabase 500-error data fetcher (subprocess)
+  error_report.py       ← 500 error clustering + classification
+  metabase_report.py    ← survey/login metrics
+  radar_report.py       ← radar tickets
+  performance_report.py ← slow query breakdown
+  assemble_report.py    ← combines all outputs into weekly_report.md
+lib/                    ← shared utilities (imported by modules)
+  utils.py              ← ROOT path, get_week_range()
+  metabase.py           ← Metabase auth + run_question()
+reports/                ← generated output (one folder per week)
+config.yaml             ← database source IDs per DC
+.env                    ← secrets (not committed)
+.env.example            ← template
+KNOWN_ISSUES.md         ← recurring errors + root causes
+```
+
 ## Quick reference
 
 **Run all reports (parallel):**
@@ -20,11 +41,11 @@ python3 run_all.py --from YYYY-MM-DD --to YYYY-MM-DD
 
 **Run a single module:**
 ```bash
-python3 metabase_report.py --start YYYY-MM-DD --end YYYY-MM-DD
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7162 > /tmp/us_errors.json
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7163 > /tmp/eu_errors.json
-python3 radar_report.py --start YYYY-MM-DD --end YYYY-MM-DD
-python3 performance_report.py --start YYYY-MM-DD --end YYYY-MM-DD
+python3 modules/metabase_report.py --from YYYY-MM-DD --to YYYY-MM-DD
+python3 modules/fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7162 > /tmp/us_errors.json
+python3 modules/fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7163 > /tmp/eu_errors.json
+python3 modules/radar_report.py --from YYYY-MM-DD --to YYYY-MM-DD
+python3 modules/performance_report.py --from YYYY-MM-DD --to YYYY-MM-DD
 ```
 
 **Output folder:**
@@ -36,6 +57,8 @@ reports/YYYY-MM-DD_to_YYYY-MM-DD/
   radar_report.md         ← radar tickets
   perf_report.md          ← slow query breakdown
   weekly_report.md        ← combined copy-paste block
+  raw/                    ← raw JSON fetched from Metabase
+    errors_combined.json
 ```
 
 ## .env required
@@ -57,8 +80,8 @@ If any script returns 401 / "session expired": re-copy `metabase.SESSION` from b
 
 | Module | Script | Status |
 |---|---|---|
-| Survey/Login metrics | `metabase_report.py` | ✓ |
-| 500 Errors | `fetcher.py` + skill | ✓ |
-| Radar tickets | `radar_report.py` | ✓ |
-| Performance / slow queries | `performance_report.py` | pending |
-| Combined assembler | `run_all.py` | in progress |
+| Survey/Login metrics | `modules/metabase_report.py` | ✓ |
+| 500 Errors | `modules/fetcher.py` + `modules/error_report.py` | ✓ |
+| Radar tickets | `modules/radar_report.py` | ✓ |
+| Performance / slow queries | `modules/performance_report.py` | ✓ |
+| Combined assembler | `modules/assemble_report.py` | ✓ |

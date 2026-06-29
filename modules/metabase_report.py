@@ -1,34 +1,32 @@
 #!/usr/bin/env python3
 """
-Weekly Metabase survey/login metrics report.
+Weekly survey/login metrics report.
 
 Queries panel_login_session and discussion_activity across all configured
-database sources. Writes a CSV + markdown report.
+database sources via Metabase. Writes a CSV + markdown report.
 
 Usage:
-    python metabase_report.py --start 2026-06-19 --end 2026-06-25
-    python metabase_report.py                     # auto: last Fri → last Thu
-    python metabase_report.py --dry-run
+    python3 metabase_report.py --from 2026-06-19 --to 2026-06-25
+    python3 metabase_report.py          # auto: last Fri → last Thu
+    python3 metabase_report.py --dry-run
 """
 
 import argparse
 import csv
-import os
 import sys
 import time
-from datetime import date, timedelta
 from pathlib import Path
-from typing import Optional
+
+# Allow running as `python3 modules/metabase_report.py` directly
+_pkg_root = str(Path(__file__).parent.parent)
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
 
 import requests
 import yaml
-from dotenv import load_dotenv
 
-SCRIPT_DIR = Path(__file__).parent
-load_dotenv(SCRIPT_DIR / ".env")
-
-METABASE_URL = os.environ.get("METABASE_URL", "https://metabase.questionpro.net").rstrip("/")
-SESSION_TOKEN = os.environ.get("METABASE_SESSION_TOKEN", "")
+from lib.metabase import METABASE_URL, SESSION_TOKEN, authenticate
+from lib.utils import ROOT, get_week_range
 
 QUERIES = {
     "panel_login_session": (
@@ -47,40 +45,8 @@ MAX_RETRIES = 3
 RETRY_BACKOFF = 2
 
 
-def get_week_range() -> tuple[str, str]:
-    today = date.today()
-    days_back = (today.weekday() - 3) % 7 or 7
-    last_thursday = today - timedelta(days=days_back)
-    last_friday = last_thursday - timedelta(days=6)
-    return str(last_friday), str(last_thursday)
-
-
-def authenticate(session: requests.Session) -> None:
-    if not SESSION_TOKEN:
-        print(
-            "ERROR: METABASE_SESSION_TOKEN not set in .env\n"
-            "  1. Open metabase.questionpro.net in Chrome\n"
-            "  2. F12 → Network → any /api/... request → Headers → Cookie\n"
-            "  3. Copy value after 'metabase.SESSION='\n"
-            "  4. Paste as METABASE_SESSION_TOKEN in .env",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-    session.headers["X-Metabase-Session"] = SESSION_TOKEN
-    resp = session.get(f"{METABASE_URL}/api/user/current", timeout=15)
-    if resp.status_code == 401:
-        print("ERROR: Session token expired — re-copy from browser.", file=sys.stderr)
-        sys.exit(1)
-    resp.raise_for_status()
-    print(f"Authenticated as: {resp.json().get('email', '?')}")
-
-
-def run_query(
-    session: requests.Session,
-    database_id: int,
-    sql: str,
-    dry_run: bool = False,
-) -> Optional[int]:
+def run_query(session: requests.Session, database_id: int, sql: str,
+              dry_run: bool = False) -> int | None:
     if dry_run:
         print(f"    [DRY RUN] db={database_id} sql={sql[:80]}...")
         return None
@@ -120,7 +86,7 @@ def validate_config(config: dict) -> None:
             if db_id == "FILL_IN" or not isinstance(db_id, int):
                 print(
                     f"ERROR: config.yaml — DC '{dc}' source {src.get('result_source')} "
-                    f"has database_id={db_id!r}. Run list_databases.py to find the real ID.",
+                    f"has database_id={db_id!r}.",
                     file=sys.stderr,
                 )
                 sys.exit(1)
@@ -134,12 +100,9 @@ def fmt_count(n) -> str:
 
 def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
          config_path: Path = None, output_dir: Path = None) -> dict:
-    """
-    Run the metrics report. Can be called directly or via CLI.
-    Returns summary dict for use by run_all.py.
-    """
+
     if config_path is None:
-        config_path = SCRIPT_DIR / "config.yaml"
+        config_path = ROOT / "config.yaml"
     if not config_path.exists():
         print(f"ERROR: {config_path} not found", file=sys.stderr)
         sys.exit(1)
@@ -204,12 +167,10 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
     if dry_run:
         return {"start": start_date, "end": end_date, "totals": totals}
 
-    # ── Output folder ─────────────────────────────────────────────────────────
     if output_dir is None:
-        output_dir = SCRIPT_DIR / "reports" / f"{start_date}_to_{end_date}"
+        output_dir = ROOT / "reports" / f"{start_date}_to_{end_date}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── CSV ───────────────────────────────────────────────────────────────────
     csv_file = output_dir / "metrics_report.csv"
     fieldnames = ["DC", "DC Result Source", col_login, col_disc]
     with open(csv_file, "w", newline="") as f:
@@ -217,7 +178,6 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
         writer.writeheader()
         writer.writerows(output_rows)
 
-    # ── Markdown ──────────────────────────────────────────────────────────────
     md_lines = [
         f"# Metrics Report: {start_date} to {end_date}",
         "",
@@ -225,11 +185,22 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
         "|---|---|---|---|",
     ]
     for r in output_rows:
-        dc  = r["DC"]
-        src = r["DC Result Source"]
-        lg  = fmt_count(r[col_login])
-        da  = fmt_count(r[col_disc])
-        md_lines.append(f"| {dc} | {src} | {lg} | {da} |")
+        md_lines.append(
+            f"| {r['DC']} | {r['DC Result Source']} "
+            f"| {fmt_count(r[col_login])} | {fmt_count(r[col_disc])} |"
+        )
+
+    dc_totals: dict[str, dict] = {}
+    for r in output_rows:
+        if r["DC"] == "TOTAL":
+            continue
+        dc = r["DC"]
+        if dc not in dc_totals:
+            dc_totals[dc] = {"login": 0, "disc": 0}
+        if isinstance(r[col_login], int):
+            dc_totals[dc]["login"] += r[col_login]
+        if isinstance(r[col_disc], int):
+            dc_totals[dc]["disc"] += r[col_disc]
 
     md_lines += [
         "",
@@ -241,25 +212,8 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
         f"Total Logins (panel_login_session) : {totals[col_login]:,}",
         f"Total Survey Activity              : {totals[col_disc]:,}",
     ]
-
-    # Per-DC totals for the copy-paste block
-    dc_totals: dict[str, dict] = {}
-    for r in output_rows:
-        if r["DC"] == "TOTAL":
-            continue
-        dc = r["DC"]
-        if dc not in dc_totals:
-            dc_totals[dc] = {"login": 0, "disc": 0}
-        v_login = r[col_login]
-        v_disc  = r[col_disc]
-        if isinstance(v_login, int):
-            dc_totals[dc]["login"] += v_login
-        if isinstance(v_disc, int):
-            dc_totals[dc]["disc"] += v_disc
-
     for dc, vals in dc_totals.items():
         md_lines.append(f"  {dc} — logins: {vals['login']:,}  activity: {vals['disc']:,}")
-
     md_lines.append("```")
 
     md_file = output_dir / "metrics_report.md"
@@ -279,16 +233,15 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Weekly Metabase survey/login metrics")
-    parser.add_argument("--start",   help="Start date YYYY-MM-DD")
-    parser.add_argument("--end",     help="End date YYYY-MM-DD")
+    parser = argparse.ArgumentParser(description="Weekly survey/login metrics report")
+    parser.add_argument("--from",    dest="date_from", help="Start date YYYY-MM-DD")
+    parser.add_argument("--to",      dest="date_to",   help="End date YYYY-MM-DD")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--config",  default=None)
     args = parser.parse_args()
-
     main(
-        start_date=args.start,
-        end_date=args.end,
+        start_date=args.date_from,
+        end_date=args.date_to,
         dry_run=args.dry_run,
         config_path=Path(args.config) if args.config else None,
     )

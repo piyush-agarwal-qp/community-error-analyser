@@ -21,7 +21,12 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).parent
+# Allow running as `python3 modules/error_report.py` directly
+_pkg_root = str(Path(__file__).parent.parent)
+if _pkg_root not in sys.path:
+    sys.path.insert(0, _pkg_root)
+
+from lib.utils import ROOT, get_week_range
 
 SAMPLE_IDS = 5   # how many sample error IDs to show per cluster
 
@@ -436,14 +441,10 @@ def main(start_date: str = None, end_date: str = None,
          input_file: str = None, output_dir: Path = None) -> dict:
 
     if not start_date or not end_date:
-        today = date.today()
-        days_back = (today.weekday() - 3) % 7 or 7
-        last_thursday = today - timedelta(days=days_back)
-        last_friday = last_thursday - timedelta(days=6)
-        start_date, end_date = str(last_friday), str(last_thursday)
+        start_date, end_date = get_week_range()
 
     if output_dir is None:
-        output_dir = SCRIPT_DIR / "reports" / f"{start_date}_to_{end_date}"
+        output_dir = ROOT / "reports" / f"{start_date}_to_{end_date}"
 
     if input_file is None:
         input_file = output_dir / "raw" / "errors_combined.json"

@@ -1,18 +1,17 @@
+#!/usr/bin/env python3
 """
-fetcher.py — Metabase error fetcher for Claude Code
-----------------------------------------------------
-Connects to Metabase, pulls condensed error rows, and prints them as JSON
-to stdout. Claude Code reads that output and does the analysis.
+fetcher.py — Metabase error fetcher.
 
-No Anthropic API key needed — Claude Code's own session handles the AI part.
+Connects to Metabase, pulls condensed 500 error rows, and writes them as JSON.
+Used by run_all.py (via subprocess) and directly from the CLI.
 
-Usage (Claude Code calls this automatically via CLAUDE.md):
-    python fetcher.py --days 7
-    python fetcher.py --from 2026-05-29 --to 2026-06-04
-    python fetcher.py --days 7 --question-id 112
-    python fetcher.py --from 2026-05-29 --to 2026-06-04 --input errors.json
+Usage:
+    python3 fetcher.py --from 2026-05-29 --to 2026-06-04
+    python3 fetcher.py --from 2026-05-29 --to 2026-06-04 --output errors.json
+    python3 fetcher.py --days 7 --question-id 112
+    python3 fetcher.py --input errors.json --from 2026-05-29 --to 2026-06-04
 
-Output: JSON to stdout, progress/errors to stderr (so they don't mix).
+Output: JSON to stdout (or --output file). Progress/errors go to stderr.
 """
 
 import argparse
@@ -21,11 +20,12 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).parent / ".env")
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
