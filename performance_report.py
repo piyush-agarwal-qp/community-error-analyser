@@ -15,6 +15,7 @@ import argparse
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
@@ -169,26 +170,41 @@ def main(start_date: str = None, end_date: str = None, dry_run: bool = False,
         authenticate(session)
 
     splits = daily_splits(date.fromisoformat(start_date), date.fromisoformat(end_date))
-    print(f"[perf] {len(splits)} day(s) × 2 questions = {len(splits) * 2} queries")
+    total_queries = len(splits) * 2
+    print(f"[perf] {len(splits)} day(s) × 2 questions = {total_queries} queries (all parallel)")
+
+    if dry_run:
+        for i, (d_from, d_to) in enumerate(splits, 1):
+            print(f"  [DRY RUN] admin-{i} {d_from}  portal-{i} {d_from}")
+        print("[perf] [DRY RUN] done")
+        return {"module": "performance", "status": "ok"}
+
+    # Build task list: (label, question_id, d_from, d_to)
+    tasks = []
+    for i, (d_from, d_to) in enumerate(splits, 1):
+        tasks.append((f"admin-{i}  {d_from}", ADMIN_Q_ID,  d_from, d_to))
+        tasks.append((f"portal-{i} {d_from}", PORTAL_Q_ID, d_from, d_to))
 
     admin_totals  = zero_buckets()
     portal_totals = zero_buckets()
+    completed = 0
 
-    for i, (d_from, d_to) in enumerate(splits, 1):
-        tag = f"day {i}/{len(splits)}: {d_from}"
-        print(f"  [admin  {tag}]")
-        row = run_question_day(session, ADMIN_Q_ID, d_from, d_to,
-                               label=f"admin-{i}", dry_run=dry_run)
-        admin_totals = add_row(admin_totals, row)
-
-        print(f"  [portal {tag}]")
-        row = run_question_day(session, PORTAL_Q_ID, d_from, d_to,
-                               label=f"portal-{i}", dry_run=dry_run)
-        portal_totals = add_row(portal_totals, row)
-
-    if dry_run:
-        print("[perf] [DRY RUN] done")
-        return {"module": "performance", "status": "ok"}
+    with ThreadPoolExecutor(max_workers=total_queries) as executor:
+        futures = {
+            executor.submit(
+                run_question_day, session, qid, d_from, d_to, label
+            ): label
+            for label, qid, d_from, d_to in tasks
+        }
+        for future in as_completed(futures):
+            label = futures[future]
+            row = future.result()
+            completed += 1
+            print(f"  [perf] ✓ {label}  ({completed}/{total_queries})")
+            if label.startswith("admin"):
+                admin_totals  = add_row(admin_totals,  row)
+            else:
+                portal_totals = add_row(portal_totals, row)
 
     admin_block  = render_block("Community Admin",  admin_totals)
     portal_block = render_block("Community Portal", portal_totals)
