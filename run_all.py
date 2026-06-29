@@ -28,30 +28,64 @@ def run_metrics(start: str, end: str, output_dir: Path, dry_run: bool) -> dict:
 
 
 def run_errors(start: str, end: str, output_dir: Path, dry_run: bool) -> dict:
-    """Fetch 500 errors via fetcher.py subprocess, then run automated analysis."""
+    """Fetch US + EU 500 errors in parallel, merge, then run automated analysis."""
+    import json
+    import os
     import subprocess
     from modules.error_report import main as error_main
 
     raw_dir = output_dir / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
+    us_out       = raw_dir / "us_errors.json"
+    eu_out       = raw_dir / "eu_errors.json"
     combined_out = raw_dir / "errors_combined.json"
 
+    us_qid = os.environ.get("METABASE_QUESTION_ID_US", "7162")
+    eu_qid = os.environ.get("METABASE_QUESTION_ID_EU", "7163")
+
     if dry_run:
-        print(f"[errors] [DRY RUN] would fetch + analyse → {combined_out}")
+        print(f"[errors] [DRY RUN] would fetch US q{us_qid} + EU q{eu_qid} → {combined_out}")
         return {"module": "errors", "status": "ok"}
 
-    print("[errors] fetching...")
-    r = subprocess.run(
-        ["python3", "modules/fetcher.py", "--from", start, "--to", end, "--output", str(combined_out)],
-        capture_output=True, text=True, cwd=str(ROOT),
-    )
-    if r.returncode != 0:
-        print(f"[errors] fetch failed:\n{r.stderr}", file=sys.stderr)
-        return {"module": "errors", "status": "error", "error": r.stderr.strip()}
+    def fetch(label: str, qid: str, out: Path) -> bool:
+        print(f"[errors] fetching {label} (q{qid})...")
+        r = subprocess.run(
+            ["python3", "modules/fetcher.py",
+             "--from", start, "--to", end,
+             "--question-id", qid,
+             "--output", str(out)],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+        for line in r.stderr.splitlines():
+            if line.strip():
+                print(f"[errors:{label}] {line}")
+        if r.returncode != 0:
+            print(f"[errors] {label} fetch failed", file=sys.stderr)
+            return False
+        return True
 
-    for line in r.stderr.splitlines():
-        if line.strip():
-            print(f"[errors] {line}")
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        us_ok = ex.submit(fetch, "US", us_qid, us_out)
+        eu_ok = ex.submit(fetch, "EU", eu_qid, eu_out)
+        us_ok, eu_ok = us_ok.result(), eu_ok.result()
+
+    if not us_ok and not eu_ok:
+        return {"module": "errors", "status": "error", "error": "both US and EU fetches failed"}
+
+    # Merge rows from whichever fetches succeeded
+    all_rows = []
+    for path in (us_out, eu_out):
+        if path.exists():
+            try:
+                data = json.loads(path.read_text())
+                all_rows.extend(data.get("rows", []))
+            except Exception:
+                pass
+
+    combined = {"date_from": start, "date_to": end, "count": len(all_rows), "rows": all_rows}
+    combined_out.write_text(json.dumps(combined))
+    print(f"[errors] combined {len(all_rows)} rows → {combined_out}")
 
     print("[errors] analysing...")
     return error_main(start_date=start, end_date=end, input_file=str(combined_out), output_dir=output_dir)

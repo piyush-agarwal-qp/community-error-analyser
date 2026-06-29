@@ -1,153 +1,148 @@
-# community-error-analyser
+# communities-reports
 
-weekly error report generator for the communities product. pulls errors from metabase, clusters by root cause, splits by dc and portal/panel side, outputs pdm + engineering update formats.
+Automated weekly report generator for the Communities product. Runs all report
+modules in parallel and produces a single copy-paste block for the team update.
 
 ---
 
-## setup
+## What it generates
 
-**1. install dependencies**
+One run produces the following files under `reports/YYYY-MM-DD_to_YYYY-MM-DD/`:
+
+| File | Contents |
+|---|---|
+| `weekly_report.md` | Combined copy-paste block — this is what you post |
+| `error_report.md` | 500 error clustering: root causes, DC split, portal/panel |
+| `metrics_report.md` | Panel login + survey activity counts by DC |
+| `metrics_report.csv` | Same data as CSV |
+| `radar_report.md` | Radar tickets for the week |
+| `perf_report.md` | Slow query breakdown (Admin + Portal) |
+| `raw/us_errors.json` | Raw error rows from US DC (Metabase) |
+| `raw/eu_errors.json` | Raw error rows from EU DC (Metabase) |
+| `raw/errors_combined.json` | Merged US + EU rows fed into error_report |
+
+---
+
+## Setup
+
+### 1. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**2. configure `.env`**
-
-copy `.env.example` to `.env` and fill in your values:
+### 2. Configure `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-| key | what to put |
-|-----|-------------|
-| `METABASE_URL` | your metabase instance url |
-| `METABASE_SESSION` | session token from browser cookies (f12 → application → cookies → `metabase.SESSION`) |
-| `METABASE_QUESTION_ID` | id of the saved metabase question (from the url: `/question/112` → `112`) |
-| `METABASE_DB_ID` | leave blank on first run — script will list available dbs |
+Open `.env` and fill in only one value — your Metabase session token:
 
-> session token expires ~2 weeks or on logout. re-copy from browser when fetcher starts returning auth errors.
+```
+METABASE_SESSION_TOKEN=paste-your-metabase.SESSION-cookie-value-here
+```
+
+All other values (URL, question IDs) are already set to the correct defaults in `.env.example`.
+
+**How to get the session token:**
+1. Open [metabase.questionpro.net](https://metabase.questionpro.net) in Chrome and sign in via Google
+2. Press F12 → Application tab → Cookies → `metabase.questionpro.net`
+3. Find the cookie named `metabase.SESSION` → copy its Value
+4. Paste it as `METABASE_SESSION_TOKEN` in `.env`
+
+> The token expires ~2 weeks or on logout. When you start seeing 401 errors, re-copy it from the browser.
 
 ---
 
-## usage
+## Running
 
-**fetch last 7 days:**
-
-```bash
-python3 fetcher.py --days 7
-```
-
-**fetch a specific date range:**
+### Generate this week's report (auto date range: last Fri → last Thu)
 
 ```bash
-python3 fetcher.py --from 2026-05-29 --to 2026-06-04
+python3 run_all.py
 ```
 
-**fetch to a local file (skip metabase):**
+### Generate for a specific date range
 
 ```bash
-python3 fetcher.py --input errors.json
+python3 run_all.py --from 2026-06-19 --to 2026-06-25
 ```
 
-output is json on stdout. progress messages go to stderr.
+### Dry-run (validates config without hitting Metabase)
 
-**all cli flags:**
+```bash
+python3 run_all.py --from 2026-06-19 --to 2026-06-25 --dry-run
+```
 
-| flag | default | description |
-|------|---------|-------------|
-| `--days N` | 7 | past n days |
-| `--from YYYY-MM-DD` | — | start date |
-| `--to YYYY-MM-DD` | today | end date |
-| `--limit N` | 500 | max rows |
-| `--question-id N` | from `.env` | saved metabase question id |
-| `--db-id N` | from `.env` | database id (raw sql mode) |
-| `--input FILE` | — | local json file, skips metabase |
+All four modules run in parallel. Total runtime is ~3–5 minutes (bottleneck is the
+Admin slow-query question which takes up to 4 min on heavy days).
 
 ---
 
-## generating the report
+## Running a single module
 
-once you have data, hand it to claude code with:
+Each module can also be run standalone:
 
-> "analyse errors from 2026-05-29 to 2026-06-04 and save the report"
+```bash
+python3 modules/metabase_report.py --from 2026-06-19 --to 2026-06-25
+python3 modules/radar_report.py    --from 2026-06-19 --to 2026-06-25
+python3 modules/performance_report.py --from 2026-06-19 --to 2026-06-25
 
-claude will run the fetcher, cluster errors, and produce a dated markdown file:
-
+# Fetch raw error data only (US or EU separately)
+python3 modules/fetcher.py --from 2026-06-19 --to 2026-06-25 --question-id 7162  # US
+python3 modules/fetcher.py --from 2026-06-19 --to 2026-06-25 --question-id 7163  # EU
 ```
-error_report_YYYY-MM-DD.md
-```
-
-the report is saved to:
-
-```
-reports/error_report_YYYY-MM-DD.md
-```
-
-the `reports/` folder is created automatically if it doesn't exist. all weekly reports accumulate there.
-
-the report contains:
-- summary table (severity, type, count, dc, side)
-- dc & side breakdown (us/eu/qa × portal/panel)
-- per-cluster detail with stack trace + all error ids
-- recommended actions
-- **pdm report** — copy-paste block for product/management
-- **engineering update** — `~ count : one-line description` bullets
 
 ---
 
-## report structure
+## Project structure
 
-### dc classification
+```
+run_all.py              ← entry point: orchestrates all modules in parallel
+modules/                ← individual report generators
+  fetcher.py            ← Metabase data fetcher (used as subprocess)
+  error_report.py       ← 500 error clustering + classification
+  metabase_report.py    ← survey/login metrics
+  radar_report.py       ← radar tickets
+  performance_report.py ← slow query breakdown
+  assemble_report.py    ← combines all outputs into weekly_report.md
+lib/                    ← shared utilities (imported by modules)
+  utils.py              ← ROOT path, get_week_range()
+  metabase.py           ← Metabase auth + run_question()
+reports/                ← generated output (one folder per week, gitignored)
+config.yaml             ← database source IDs per DC (metrics module)
+.env                    ← your secrets — never committed
+.env.example            ← template with all defaults filled in
+KNOWN_ISSUES.md         ← recurring errors tracked across weeks
+```
 
-| host pattern | dc |
+---
+
+## DC and side classification (500 errors)
+
+**DC** is determined by hostname:
+
+| Host pattern | DC |
 |---|---|
-| `pveu*`, `onepoll*` | eu |
-| `qa*`, `*qaapp*`, `*qaweb*`, `qa11` | qa |
-| everything else | us |
+| `pveu*`, `onepoll*` | EU |
+| `qa*`, `*qaapp*`, `*qaweb*`, `qa11`, `saqa*` | QA (non-production) |
+| everything else | US |
 
-### communities side classification
+**Side** is determined by URL signals in the request + stacktrace:
 
-**portal** = member-facing (what panel members see)
-- `PortalDashBoardAJSHandler-GetTaskDetails`
-- `PortalDashBoardAJSHandler-GetSurveyDetails`
-- pages: `showPanelMemberDashBoard`, `showMemberSurveys`, `showRewardTab`, `showMemberAccount`
-
-**panel** = admin-facing (what panel managers see)
-- pages: `showPanelUserReport`, `searchSurveyCampaignBatch`, `panelLanguageTranslationImport`, `showDiscussionModeration`, `showPanelProjectHistory`, `inviteUsers`, `editLanguage`
+| Side | Meaning |
+|---|---|
+| Portal | Member-facing (panel members logging in, taking surveys) |
+| Panel | Admin-facing (panel managers, reports, moderation) |
 
 ---
 
-## tracking recurring issues
+## Tracking recurring issues
 
 `KNOWN_ISSUES.md` tracks errors that appear across multiple weeks.
 
-after each report:
-- bump **last seen** date for active issues
-- mark **resolved** for anything that disappeared
-- add a new `KI-NNN` entry for any issue appearing a second consecutive week
-
----
-
-## output example
-
-**pdm report block:**
-```
-500 errors logged (29 may – 4 jun 2026)
-
-us dc — 2 panel, 1 portal
-eu dc — 3 panel, 1 portal
-qa    — 1 panel, 1 portal  (non-production)
-```
-
-**engineering update block:**
-```
-500 errors | panel-2, portal-1 (us) | portal-1, panel-3 (eu)
-
-~ 438 : member dashboard task list broken (gettaskdetails) — invocationtargetexception — all us prod nodes
-~ 15  : member survey list broken (getsurveydetails) — eu onepoll nodes
-~ 6   : zoom create-user api http 400 — eu admin panel zoom integration broken
-~ 7   : nullpointerexception in campaign send history search — admin panel
-~ 3   : arrayindexoutofboundsexception in panel language translation import — eu
-```
+After each report:
+- Bump **last seen** date for active issues
+- Mark **resolved** for anything that disappeared
+- Add a new `KI-NNN` entry for issues appearing a second consecutive week
