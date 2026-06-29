@@ -29,8 +29,8 @@ load_dotenv()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
-STACKTRACE_CHARS = 600
-EXTRA_INFO_CHARS = 200
+STACKTRACE_CHARS = 2000
+EXTRA_INFO_CHARS = 400
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ def _condense(row: dict) -> dict:
 def _build_client() -> MetabaseClient:
     url     = _env("METABASE_URL").rstrip("/")
     api_key = _env("METABASE_API_KEY")
-    session = _env("METABASE_SESSION")
+    session = _env("METABASE_SESSION_TOKEN") or _env("METABASE_SESSION")
     user    = _env("METABASE_USER")
     pw      = _env("METABASE_PASS")
 
@@ -233,6 +233,7 @@ Examples:
     p.add_argument("--question-id", type=int, default=0,   help="Saved Metabase question ID")
     p.add_argument("--db-id",       type=int, default=0,   help="Metabase database ID")
     p.add_argument("--input",                              help="Local JSON file — skips Metabase")
+    p.add_argument("--output",                             help="Save JSON to file instead of stdout")
     args = p.parse_args()
 
     # Resolve dates
@@ -302,8 +303,13 @@ Examples:
         "count":     len(condensed),
         "rows":      condensed,
     }
-    print(json.dumps(output))   # stdout — Claude Code reads this
-    _err(f"Done — {len(condensed)} condensed rows written to stdout")
+    if args.output:
+        import pathlib
+        pathlib.Path(args.output).write_text(json.dumps(output))
+        _err(f"Done — {len(condensed)} condensed rows written to {args.output}")
+    else:
+        print(json.dumps(output))   # stdout — Claude Code reads this
+        _err(f"Done — {len(condensed)} condensed rows written to stdout")
 
 
 if __name__ == "__main__":

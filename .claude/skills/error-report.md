@@ -25,13 +25,28 @@ Pattern: `[thing] [action] [reason]. [next step].`
 
 ---
 
-## Step 1 — Fetch and save (once — never fetch twice)
+## Step 1 — Locate or fetch error data (never fetch twice)
+
+Check if `run_all.py` already fetched the data for this week:
 
 ```bash
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD > /tmp/errors.json 2>/tmp/fetcher_stderr.log
+ls reports/{START}_to_{END}/errors_combined.json 2>/dev/null && echo "exists" || echo "missing"
 ```
 
-All subsequent steps read from `/tmp/errors.json`. If fetch fails, check `/tmp/fetcher_stderr.log`.
+**If exists** — skip fetch. Read from `reports/{START}_to_{END}/errors_combined.json`.
+
+**If missing** — fetch now:
+
+```bash
+mkdir -p reports/{START}_to_{END}
+python3 fetcher.py --from {START} --to {END} \
+  --output reports/{START}_to_{END}/errors_combined.json 2>/tmp/fetcher.log
+```
+
+Check row count: `python3 -c "import json; d=json.load(open('reports/{START}_to_{END}/errors_combined.json')); print(d['count'], 'rows')`
+
+All subsequent steps read from `reports/{START}_to_{END}/errors_combined.json`.
+If fetch fails or returns 0, check `/tmp/fetcher.log` — likely an expired session.
 
 ---
 
@@ -43,7 +58,7 @@ Run this on the saved file to understand shape before writing the report:
 python3 -c "
 import json, sys, collections, re
 
-with open('/tmp/errors.json') as f:
+with open('reports/{START}_to_{END}/errors_combined.json') as f:
     data = json.load(f)
 rows = data['rows']
 
@@ -249,10 +264,11 @@ all text lowercase.
 ## Step 7 — Save report
 
 ```
-reports/error_report_YYYY-MM-DD.md   ← use --to date (or today for --days)
+reports/{START}_to_{END}/error_report.md
 ```
 
-Create `reports/` dir if it doesn't exist. Always save. Do not wait for user to ask.
+Create the folder if it doesn't exist. Always save. Do not wait for user to ask.
+Also move any old-style `reports/error_report_{END}.md` to the new path if it exists.
 
 ---
 

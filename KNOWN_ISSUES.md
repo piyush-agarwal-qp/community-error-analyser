@@ -16,11 +16,11 @@ Track errors that appear in multiple weekly reports. Update this file after each
 - **Severity:** Critical
 - **First seen:** 2026-06-04 (`error_report_2026-06-04.md`, cluster 1)
 - **Last seen:** 2026-06-04
-- **Count trend:** 438 (week of May 29–Jun 4)
+- **Count trend:** 438 (week of May 29–Jun 4) → 0 (week of Jun 19–25)
 - **Affected:** All US qprun nodes (1–11), all Communities tenants
 - **Exception:** `java.lang.reflect.InvocationTargetException` in `PortalDashBoardAJSHandler-GetTaskDetails`
-- **Status:** Open — root cause (wrapped exception) not yet retrieved from Resin logs
-- **Notes:** Accounts for 87% of all weekly errors. Needs `.getCause()` pulled from full Resin log.
+- **Status:** Possibly resolved — not seen in Jun 19–25 data. Confirm after next week.
+- **Notes:** Gap week Jun 5–18 not analysed. Needs `.getCause()` pulled from full Resin log if it recurs.
 
 ---
 
@@ -28,23 +28,23 @@ Track errors that appear in multiple weekly reports. Update this file after each
 - **Severity:** High
 - **First seen:** 2026-06-04 (`error_report_2026-06-04.md`, cluster 2)
 - **Last seen:** 2026-06-04
-- **Count trend:** 15 (week of May 29–Jun 4)
+- **Count trend:** 15 (week of May 29–Jun 4) → 0 (week of Jun 19–25)
 - **Affected:** pveuqprun2, pveuqprun4 — onepoll EU tenants
 - **Exception:** `java.lang.reflect.InvocationTargetException` in `PortalDashBoardAJSHandler-GetSurveyDetails`
-- **Status:** Open — may share root cause with KI-001 or be independent
-- **Notes:** Investigate alongside KI-001; use QA (qa11) to reproduce.
+- **Status:** Possibly resolved — not seen in Jun 19–25 data. Confirm after next week.
+- **Notes:** A new AJSServlet InvocationTargetException appeared in EU this week (cluster 2, panel.do referrer) — may be related but different handler.
 
 ---
 
 ### KI-003 · Panel Language Translation Import Failure — EU
 - **Severity:** Medium
 - **First seen:** 2026-06-04 (`error_report_2026-06-04.md`, cluster 6)
-- **Last seen:** 2026-06-04
-- **Count trend:** 3 (week of May 29–Jun 4)
-- **Affected:** pveuqpweb3, pveuqpweb4 — customer `trpresearch.com`
-- **Exception:** `ArrayIndexOutOfBoundsException` (off-by-one) + `NullPointerException` on `PanelDetail.getID()` in `com.surveyconsole.micropanel.language.PanelTranslation`
-- **Status:** Open
-- **Notes:** Same customer, same endpoint, two different failure paths — both in PanelTranslation import loop.
+- **Last seen:** 2026-06-25 (`error_report_2026-06-25.md`, cluster 7)
+- **Count trend:** 3 (week of May 29–Jun 4) → 2 (week of Jun 19–25)
+- **Affected:** pveuadminapp1 — user `muzaffar.quraishi+eu@questionpro.com`
+- **Exception:** `ArrayIndexOutOfBoundsException: Index 164 out of bounds for length 164` in `com.surveyconsole.micropanel.language.PanelTranslation`
+- **Status:** Open — recurring second consecutive week
+- **Notes:** Off-by-one in PanelTranslation import loop. Referrer: `editLanguage.do?mode=importTranslation`. Not fixed yet.
 
 ---
 

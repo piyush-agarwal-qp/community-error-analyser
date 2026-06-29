@@ -1,0 +1,74 @@
+# Weekly report configuration
+# Run list_databases.py (from community-weekly-reports) once to verify IDs.
+
+# ── Survey / Login Metrics ────────────────────────────────────────────────────
+# Queries per source: panel_login_session + discussion_activity
+databases:
+  US:
+    - result_source: 9
+      database_id: 109
+      label: "US-9"
+    - result_source: 11
+      database_id: 123
+      label: "US-11"
+    - result_source: 13
+      database_id: 111
+      label: "US-13"
+    - result_source: 15
+      database_id: 113
+      label: "US-15"
+    - result_source: 16
+      database_id: 114
+      label: "US-16"
+    - result_source: 17
+      database_id: 134
+      label: "US-17"
+
+  EU:
+    - result_source: 1
+      database_id: 127
+      label: "EU-1"
+    - result_source: 2
+      database_id: 132
+      label: "EU-2"
+    - result_source: 3
+      database_id: 138
+      label: "EU-3"
+
+  AU:
+    - result_source: 1
+      database_id: 129
+      label: "AU-1"
+
+  AE:
+    - result_source: 1
+      database_id: 128
+      label: "AE-1"
+
+  CA:
+    - result_source: 1
+      database_id: 130
+      label: "CA-1"
+
+  SA:
+    - result_source: 1
+      database_id: 115
+      label: "SA-1"
+    - result_source: 6
+      database_id: 119
+      label: "SA-6"
+    - result_source: 7
+      database_id: 120
+      label: "SA-7"
+
+# ── Performance Metrics ───────────────────────────────────────────────────────
+# DB containing endpoint_performance_log
+performance_report:
+  database_id: 249
+
+# ── 500 Errors ────────────────────────────────────────────────────────────────
+# US = qp_metabase, EU = euqpdb2 in Metabase
+errors_report:
+  databases:
+    US: 2
+    EU: 105

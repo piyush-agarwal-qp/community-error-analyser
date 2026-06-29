@@ -1,43 +1,64 @@
-# Weekly Error Analyser
+# Communities Weekly Reports
 
-Generates weekly error reports for the Communities product.
-`fetcher.py` fetches from Metabase. Full analysis instructions are in `.claude/skills/error-report.md`.
+Master report generator for the Communities product weekly update.
+Runs all report modules in parallel and assembles a combined copy-paste block.
 
 ## Trigger phrases
 
-- "generate this week's error report"
-- "analyse errors from last 7 days"
-- "what errors happened between [date] and [date]"
-- "run the weekly error analysis"
-- "show me this week's production errors"
+- "generate weekly report from DATE to DATE"
+- "run weekly reports for June 19 to June 25"
+- "generate this week's communities report"
 
-## On trigger: follow `.claude/skills/error-report.md` exactly
-
-Do not improvise steps. The skill file has the fetch command, pre-cluster script, clustering rules, DC/portal/panel classification, report format, PDM block, engineering update format, and KNOWN_ISSUES.md update procedure.
+## On trigger: follow `.claude/skills/weekly-report.md` exactly
 
 ## Quick reference
 
-**Fetch:**
+**Run all reports (parallel):**
 ```bash
-python3 fetcher.py --days 7
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD
+python3 run_all.py --from YYYY-MM-DD --to YYYY-MM-DD
 ```
 
-**Save output first, analyse from file — never fetch twice:**
+**Run a single module:**
 ```bash
-python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD > /tmp/errors.json 2>/tmp/fetcher_stderr.log
+python3 metabase_report.py --start YYYY-MM-DD --end YYYY-MM-DD
+python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7162 > /tmp/us_errors.json
+python3 fetcher.py --from YYYY-MM-DD --to YYYY-MM-DD --question-id 7163 > /tmp/eu_errors.json
+python3 radar_report.py --start YYYY-MM-DD --end YYYY-MM-DD
+python3 performance_report.py --start YYYY-MM-DD --end YYYY-MM-DD
 ```
 
-**If count = 0:** tell user no errors found, suggest widening range or refreshing `METABASE_SESSION` in `.env`.
-
-**If count = 500:** note "query limit hit" in report header — real volume is higher.
-
-**Save report as:** `reports/error_report_YYYY-MM-DD.md` (create `reports/` if missing, always save, don't wait to be asked).
+**Output folder:**
+```
+reports/YYYY-MM-DD_to_YYYY-MM-DD/
+  metrics_report.csv      ← survey/login counts (raw)
+  metrics_report.md       ← survey/login counts (formatted)
+  error_report.md         ← 500 errors analysis
+  radar_report.md         ← radar tickets
+  perf_report.md          ← slow query breakdown
+  weekly_report.md        ← combined copy-paste block
+```
 
 ## .env required
 
 ```
-METABASE_URL=https://your-metabase.company.com
-METABASE_SESSION=<metabase.SESSION browser cookie value>
-METABASE_QUESTION_ID=<saved question id>
+METABASE_URL=https://metabase.questionpro.net
+METABASE_SESSION_TOKEN=<metabase.SESSION browser cookie>
+METABASE_QUESTION_ID_US=7162
+METABASE_QUESTION_ID_EU=7163
+METABASE_QUESTION_ID_RADAR=7302
 ```
+
+## Auth errors
+
+If any script returns 401 / "session expired": re-copy `metabase.SESSION` from browser
+→ F12 → Application → Cookies → metabase.SESSION → paste into `.env` as `METABASE_SESSION_TOKEN`.
+
+## Report modules
+
+| Module | Script | Status |
+|---|---|---|
+| Survey/Login metrics | `metabase_report.py` | ✓ |
+| 500 Errors | `fetcher.py` + skill | ✓ |
+| Radar tickets | `radar_report.py` | ✓ |
+| Performance / slow queries | `performance_report.py` | pending |
+| Combined assembler | `run_all.py` | in progress |
