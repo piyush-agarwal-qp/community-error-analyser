@@ -446,7 +446,7 @@ def main(start_date: str = None, end_date: str = None,
         output_dir = SCRIPT_DIR / "reports" / f"{start_date}_to_{end_date}"
 
     if input_file is None:
-        input_file = output_dir / "errors_combined.json"
+        input_file = output_dir / "raw" / "errors_combined.json"
 
     if not Path(input_file).exists():
         print(f"[errors] {input_file} not found — run fetcher first", file=sys.stderr)

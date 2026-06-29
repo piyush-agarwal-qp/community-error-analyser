@@ -46,7 +46,9 @@ def run_errors(start: str, end: str, output_dir: Path, dry_run: bool) -> dict:
     import subprocess as _subprocess
     from error_report import main as error_main
 
-    combined_out = output_dir / "errors_combined.json"
+    raw_dir = output_dir / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    combined_out = raw_dir / "errors_combined.json"
 
     if dry_run:
         print(f"[errors] [DRY RUN] would fetch + analyse → {combined_out}")
