@@ -6,7 +6,7 @@ Enhancement:
 500 Error:
  Admin -
 
-• Admin — 0 Panel (US), 1 Panel (EU).
+• Admin — 3 Panel (US), 3 Panel (EU).
 
  Portal -
 
@@ -35,19 +35,19 @@ Radar tickets : 1
 
 500 Errors Logged :
 
-• US DC - 0 Panel 0 Portal.
-• EU DC - 1 Panel 1 Portal.
+• US DC - 3 Panel 0 Portal.
+• EU DC - 3 Panel 1 Portal.
 
 Slow Query Report [2026-06-19 – 2026-06-25]
 
 • Community Admin
-        Total Queries     : 10.61M
-         • < 50ms           : 10.57M  (99.70%)
-         • 50–100ms     : 21.68K  (0.20%)
-         • 100–200ms   : 6.43K  (0.06%)
-         • 200–500ms   : 2.50K  (0.02%)
-         • 500–1000ms : 531   (0.01%)
-         • > 1000ms       : 356   (0.00%)
+        Total Queries     : 14.54M
+         • < 50ms           : 14.50M  (99.70%)
+         • 50–100ms     : 29.78K  (0.20%)
+         • 100–200ms   : 9.08K  (0.06%)
+         • 200–500ms   : 3.52K  (0.02%)
+         • 500–1000ms : 649   (0.00%)
+         • > 1000ms       : 526   (0.00%)
 
 • Community Portal
         Total Queries     : 59.12M
