@@ -1,4 +1,4 @@
-# communities-reports
+# communities-weekly-reports
 
 Automated weekly report generator for the Communities product. Runs all report
 modules in parallel and produces a single copy-paste block for the team update.
