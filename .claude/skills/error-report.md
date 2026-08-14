@@ -39,6 +39,53 @@ python3 fetcher.py --from {START} --to {END} \
 
 ---
 
+## Step 1.5 — Extract action class + exception type precisely
+
+The automated `error_report.py` clusters by Metabase's pre-computed `hash`
+column — this can bucket two truly-related errors apart (different hash,
+same real cause) or lump unrelated ones together. When investigating,
+re-derive the two signals that actually identify a root cause:
+
+- **Exception type** — the class name on the top-level line or the
+  **deepest** `Caused by:` line (e.g. `SQLIntegrityConstraintViolationException`,
+  `java.lang.NullPointerException`). Deepest `Caused by:` wins — same rule
+  `extract_root_cause()` in `error_report.py` already follows.
+- **Action class + method** — the **deepest** `com.surveyconsole.*` (or
+  `com.bhaskaran.*`) stack frame matching `<ActionClass>.<method>`, taken
+  from that same deepest `Caused by:` block, not the top of the trace. The
+  top frame is usually generic servlet/dispatcher plumbing — the deepest
+  codebase frame is where the bug actually lives.
+
+```bash
+python3 -c "
+import re
+st = open('/tmp/one_stacktrace.txt').read()  # paste one row's 'st' field here
+frames = re.findall(r'at (com\.(?:surveyconsole|bhaskaran)\.[\w.]+)\(', st)
+print('deepest action frame:', frames[-1] if frames else '(none found)')
+"
+```
+
+**Regroup manually when:**
+- Same action class + same exception type across different hashes/hosts →
+  it's one issue, not several — merge for KNOWN_ISSUES.md purposes.
+- Same action class + *different* exception types → likely related (same
+  buggy method failing in more than one way) — call this out together in
+  the write-up even if kept as separate clusters.
+- Different hostnames/DCs but same action+exception → consolidate into a
+  single reported issue; DC is a symptom of traffic distribution, not a
+  distinct root cause.
+
+**Confidence, when reporting a regrouping to the user:**
+- **high** — action class and exception type both cleanly extracted from a
+  real codebase frame.
+- **medium** — exception type clear, but no `com.surveyconsole`/`com.bhaskaran`
+  frame in the trace (e.g. pure framework/SQL driver exception) — action
+  class is a guess from the endpoint instead.
+- **low** — stacktrace truncated or frames dominated by generic library
+  code — flag it rather than force a grouping.
+
+---
+
 ## Step 2 — Inspect a specific cluster
 
 Pull all rows for a given hash to see full stacktraces across multiple occurrences:
@@ -108,3 +155,8 @@ For each cluster reviewed:
 - `Root Exception :` with no following line = stacktrace was truncated — check if STACKTRACE_CHARS in `fetcher.py` needs increasing
 - 65 rows = Metabase question row limit — real volume may be higher
 - QA-only clusters = low severity, non-production
+- Action class: always take the **deepest** `com.surveyconsole`/`com.bhaskaran`
+  frame in the deepest `Caused by:` block, not the first frame in the trace —
+  the top frame is dispatcher/servlet plumbing, not where the bug lives
+- Metabase's `hash` column ≠ true root cause — two hashes with the same
+  action class + exception type are the same issue (see Step 1.5)
