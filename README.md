@@ -28,8 +28,20 @@ One run produces the following files under `reports/YYYY-MM-DD_to_YYYY-MM-DD/`:
 ### 1. Install dependencies
 
 ```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+> If `pip install -r requirements.txt` fails outside a venv with
+> `error: externally-managed-environment` — that's PEP 668 (modern Debian/
+> Ubuntu Python). Use the venv steps above, don't pass `--break-system-packages`.
+>
+> **Always `source .venv/bin/activate` before running `run_all.py`** (each
+> new shell). `run_all.py` spawns `modules/fetcher.py` as `python3` via
+> `$PATH` — if the venv isn't active, that subprocess silently falls back
+> to system Python and fails with `ModuleNotFoundError: No module named 'dotenv'`
+> even though `run_all.py` itself started fine.
 
 ### 2. Configure `.env`
 
