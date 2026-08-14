@@ -34,6 +34,10 @@ KNOWN_ISSUES.md         ← recurring errors + root causes
 
 ## Quick reference
 
+**First-time setup:** `python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`
+(see README for why — venv required on PEP-668 systems, and must stay activated:
+`run_all.py` spawns `fetcher.py` as plain `python3` via `$PATH`.)
+
 **Run all reports (parallel):**
 ```bash
 python3 run_all.py --from YYYY-MM-DD --to YYYY-MM-DD
