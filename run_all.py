@@ -107,11 +107,20 @@ def run_performance(start: str, end: str, output_dir: Path, dry_run: bool) -> di
     return result
 
 
+def run_slow_endpoint(start: str, end: str, output_dir: Path, dry_run: bool) -> dict:
+    from modules.slow_endpoint_report import main as slow_endpoint_main
+    print("[slow-endpoint] starting...")
+    result = slow_endpoint_main(start_date=start, end_date=end, dry_run=dry_run, output_dir=output_dir)
+    print("[slow-endpoint] done")
+    return result
+
+
 MODULES = [
-    ("metrics",     run_metrics),
-    ("errors",      run_errors),
-    ("radar",       run_radar),
-    ("performance", run_performance),
+    ("metrics",       run_metrics),
+    ("errors",        run_errors),
+    ("radar",         run_radar),
+    ("performance",   run_performance),
+    ("slow_endpoint", run_slow_endpoint),
 ]
 
 

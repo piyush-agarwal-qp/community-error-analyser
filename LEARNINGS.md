@@ -60,4 +60,33 @@ recommended change if not yet applied).
 
 ---
 
+## 2026-08-14 — added slow-endpoint report module
+
+- **New module `slow_endpoint_report.py`** (question 7304) hits the same
+  problem as the existing performance module: full-week query is slow, and
+  the value returned is an **average**, not summable across days. Reused
+  performance_report's day-split + parallel-fetch pattern, but the
+  combine step differs — instead of summing bucket counts, aggregated with
+  a **request-count-weighted average per endpoint** across days before
+  ranking top 3. A plain average-of-averages would under-weight heavy days.
+  **Recommend:** if another "average metric per day" question ever needs
+  wiring up, weighted-average-by-volume is the right combine, not sum or
+  plain mean — check what the underlying question actually returns first.
+
+- **The question only returns a handful of "slow" rows per day** — it's not
+  an unlimited list we can slice top-3 from ourselves; each day's rows are
+  already whatever Metabase's query considers slow that day. An endpoint
+  that's chronically mediocre but never the single worst on any given day
+  can't surface in this design. Documented as a known limitation in the
+  new `.claude/skills/slow-endpoint-report.md` rather than silently
+  presenting the top-3 as exhaustive.
+
+- **Endpoint display names need cleanup for the copy-paste format** —
+  AJS handler paths like `.../ProfileCrossTabAJSHandler-GetCrosstabResults`
+  aren't human-readable; extracting the method name after the last `-` and
+  lowercasing the first letter reproduces the requested format
+  (`/getCrosstabResults`). Verified against the user-provided sample JSON
+  before wiring into the real Metabase call — cheap way to catch parsing
+  mismatches before spending an API round-trip.
+
 <!-- Add new dated entries above this line -->

@@ -29,7 +29,7 @@ Confirm dates before proceeding if ambiguous.
 python3 run_all.py --from {START} --to {END}
 ```
 
-This fires all 4 modules simultaneously:
+This fires all 5 modules simultaneously:
 
 | Module | Script | Output |
 |---|---|---|
@@ -37,6 +37,7 @@ This fires all 4 modules simultaneously:
 | 500 Errors (fetch + analyse) | `fetcher.py` + `error_report.py` | `error_report.md` |
 | Radar tickets | `radar_report.py` | `radar_report.md` |
 | Slow query performance | `performance_report.py` (14 queries parallel) | `perf_report.md` |
+| Top 3 slowest endpoints | `slow_endpoint_report.py` (1 query/day parallel) | `slow_endpoint_report.md` |
 
 After all modules complete, `run_all.py` calls `assemble_report.py` automatically
 → `reports/{START}_to_{END}/weekly_report.md`
@@ -100,6 +101,7 @@ reports/{START}_to_{END}/
   metrics_report.csv      ← survey/login counts (raw)
   radar_report.md         ← radar tickets with brief
   perf_report.md          ← slow query breakdown (admin + portal)
+  slow_endpoint_report.md ← top 3 slowest endpoints by weighted avg latency
   raw/
     errors_combined.json  ← raw 500 error fetch data (processing only)
 ```

@@ -21,6 +21,7 @@ modules/                ← individual report generators
   metabase_report.py    ← survey/login metrics
   radar_report.py       ← radar tickets
   performance_report.py ← slow query breakdown
+  slow_endpoint_report.py ← top 3 slowest endpoints by weighted avg latency
   assemble_report.py    ← combines all outputs into weekly_report.md
 lib/                    ← shared utilities (imported by modules)
   utils.py              ← ROOT path, get_week_range()
@@ -60,6 +61,7 @@ reports/YYYY-MM-DD_to_YYYY-MM-DD/
   error_report.md         ← 500 errors analysis
   radar_report.md         ← radar tickets
   perf_report.md          ← slow query breakdown
+  slow_endpoint_report.md ← top 3 slowest endpoints by weighted avg latency
   weekly_report.md        ← combined copy-paste block
   raw/                    ← raw JSON fetched from Metabase
     errors_combined.json
@@ -73,6 +75,7 @@ METABASE_SESSION_TOKEN=<metabase.SESSION browser cookie>
 METABASE_QUESTION_ID_US=7162
 METABASE_QUESTION_ID_EU=7163
 METABASE_QUESTION_ID_RADAR=7302
+METABASE_QUESTION_ID_SLOW_ENDPOINT=7304
 ```
 
 ## Auth errors
@@ -88,4 +91,5 @@ If any script returns 401 / "session expired": re-copy `metabase.SESSION` from b
 | 500 Errors | `modules/fetcher.py` + `modules/error_report.py` | ✓ |
 | Radar tickets | `modules/radar_report.py` | ✓ |
 | Performance / slow queries | `modules/performance_report.py` | ✓ |
+| Top 3 slowest endpoints | `modules/slow_endpoint_report.py` | ✓ |
 | Combined assembler | `modules/assemble_report.py` | ✓ |

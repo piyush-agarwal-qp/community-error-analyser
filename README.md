@@ -17,6 +17,7 @@ One run produces the following files under `reports/YYYY-MM-DD_to_YYYY-MM-DD/`:
 | `metrics_report.csv` | Same data as CSV |
 | `radar_report.md` | Radar tickets for the week |
 | `perf_report.md` | Slow query breakdown (Admin + Portal) |
+| `slow_endpoint_report.md` | Top 3 slowest endpoints by weighted avg latency |
 | `raw/us_errors.json` | Raw error rows from US DC (Metabase) |
 | `raw/eu_errors.json` | Raw error rows from EU DC (Metabase) |
 | `raw/errors_combined.json` | Merged US + EU rows fed into error_report |
@@ -87,7 +88,7 @@ python3 run_all.py --from 2026-06-19 --to 2026-06-25
 python3 run_all.py --from 2026-06-19 --to 2026-06-25 --dry-run
 ```
 
-All four modules run in parallel. Total runtime is ~3–5 minutes (bottleneck is the
+All five modules run in parallel. Total runtime is ~3–5 minutes (bottleneck is the
 Admin slow-query question which takes up to 4 min on heavy days).
 
 ---
@@ -100,6 +101,7 @@ Each module can also be run standalone:
 python3 modules/metabase_report.py --from 2026-06-19 --to 2026-06-25
 python3 modules/radar_report.py    --from 2026-06-19 --to 2026-06-25
 python3 modules/performance_report.py --from 2026-06-19 --to 2026-06-25
+python3 modules/slow_endpoint_report.py --from 2026-06-19 --to 2026-06-25
 
 # Fetch raw error data only (US or EU separately)
 python3 modules/fetcher.py --from 2026-06-19 --to 2026-06-25 --question-id 7162  # US
@@ -118,6 +120,7 @@ modules/                ← individual report generators
   metabase_report.py    ← survey/login metrics
   radar_report.py       ← radar tickets
   performance_report.py ← slow query breakdown
+  slow_endpoint_report.py ← top 3 slowest endpoints by weighted avg latency
   assemble_report.py    ← combines all outputs into weekly_report.md
 lib/                    ← shared utilities (imported by modules)
   utils.py              ← ROOT path, get_week_range()

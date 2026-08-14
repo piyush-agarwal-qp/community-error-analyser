@@ -75,6 +75,10 @@ def parse_metrics_block(md: str) -> str:
     return extract_copy_paste_block(md)
 
 
+def parse_slow_endpoint_block(md: str) -> str:
+    return extract_copy_paste_block(md)
+
+
 def fmt_date_header(end_date: str) -> str:
     """'2026-06-25' → 'June 25'"""
     d = date.fromisoformat(end_date)
@@ -84,10 +88,11 @@ def fmt_date_header(end_date: str) -> str:
 # ── Assembler ─────────────────────────────────────────────────────────────────
 
 def assemble(start: str, end: str, folder: Path) -> str:
-    radar_file   = folder / "radar_report.md"
-    error_file   = folder / "error_report.md"
-    perf_file    = folder / "perf_report.md"
-    metrics_file = folder / "metrics_report.md"
+    radar_file         = folder / "radar_report.md"
+    error_file         = folder / "error_report.md"
+    perf_file          = folder / "perf_report.md"
+    metrics_file       = folder / "metrics_report.md"
+    slow_endpoint_file = folder / "slow_endpoint_report.md"
 
     # ── Radar ─────────────────────────────────────────────────────────────────
     radar_count, radar_block = 0, ""
@@ -111,6 +116,13 @@ def assemble(start: str, end: str, folder: Path) -> str:
         perf_block = parse_perf_block(perf_file.read_text())
     else:
         print(f"  [assemble] perf_report.md missing — performance pending")
+
+    # ── Slow endpoint ─────────────────────────────────────────────────────────
+    slow_endpoint_block = ""
+    if slow_endpoint_file.exists():
+        slow_endpoint_block = parse_slow_endpoint_block(slow_endpoint_file.read_text())
+    else:
+        print(f"  [assemble] slow_endpoint_report.md missing — slow-endpoint pending")
 
     # ── Metrics ───────────────────────────────────────────────────────────────
     metrics_block = ""
@@ -204,6 +216,12 @@ def assemble(start: str, end: str, folder: Path) -> str:
             "• [performance report pending]",
             "",
         ]
+
+    # Top 3 Slowest Queries
+    if slow_endpoint_block:
+        lines += [slow_endpoint_block, ""]
+    else:
+        lines += ["Top 3 Slowest Queries", "", "• [slow-endpoint report pending]", ""]
 
     # Metrics Sheet
     lines += ["Metrics Sheet", ""]

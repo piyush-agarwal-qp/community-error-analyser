@@ -59,6 +59,11 @@ Slow Query Report [2026-08-07 – 2026-08-13]
          • 500–1000ms : 232   (0.00%)
          • > 1000ms       : 107   (0.00%)
 
+Top 3 Slowest Queries
+         • /showPanelAPIRequestLog.do – Latency : 494404 ms
+         • /getPointsDistributionByActivities – Latency : 8585 ms
+         • /showPanelAdminSettings.do – Latency : 4357 ms
+
 Metrics Sheet
 
 Metrics [2026-08-07 – 2026-08-13]
